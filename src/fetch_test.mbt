@@ -28,7 +28,7 @@ fn digest(body : Bytes) -> String {
 ///|
 async test "fetch: a GET in the clear, and the connection is kept for the next" {
   with_servers((port, _, accepted) => {
-    let client = @moonfetch.Client::new()
+    let client = @moonfetch.Client::new(timeout=Some(60000))
     defer client.close()
     for _ in 0..<3 {
       let r = client.get("http://127.0.0.1:\{port}/")
@@ -44,7 +44,7 @@ async test "fetch: a GET in the clear, and the connection is kept for the next" 
 ///|
 async test "fetch: https settles on HTTP/2 by ALPN, one connection carries every request" {
   with_servers(secure=true, (port, _, accepted) => {
-    let client = @moonfetch.Client::new(tls=trusting())
+    let client = @moonfetch.Client::new(tls=trusting(), timeout=Some(60000))
     defer client.close()
     for _ in 0..<3 {
       let r = client.get("https://localhost:\{port}/echo")
@@ -52,11 +52,16 @@ async test "fetch: https settles on HTTP/2 by ALPN, one connection carries every
       assert_eq(r.version, "HTTP/2")
     }
     assert_eq(accepted.val, 1)
-    let h1 = @moonfetch.Client::new(tls=trusting(), http2=false)
+    let h1 = @moonfetch.Client::new(
+      tls=trusting(),
+      http2=false,
+      timeout=Some(60000),
+    )
     defer h1.close()
     assert_eq(h1.get("https://localhost:\{port}/").version, "HTTP/1.1")
     let stranger = @moonfetch.Client::new(
       tls=@tls.Client::new(@x509.Roots::new(certs=@x509.pems(other_root)[:])),
+      timeout=Some(60000),
     )
     defer stranger.close()
     assert_true(
@@ -80,7 +85,11 @@ async test "fetch: each body goes with its content type, over both versions" {
   ]
   with_servers(secure=true, (port, other, _) => {
     for base in ["https://localhost:\{port}", "http://localhost:\{other}"] {
-      let client = @moonfetch.Client::new(base_url=base, tls=trusting())
+      let client = @moonfetch.Client::new(
+        base_url=base,
+        tls=trusting(),
+        timeout=Some(60000),
+      )
       defer client.close()
       for case in cases {
         let (body, wire, kind) = case
@@ -106,6 +115,7 @@ async test "fetch: base URL, query and headers combine as httpx combines them" {
     let client = @moonfetch.Client::new(
       base_url="http://127.0.0.1:\{port}/redirect",
       headers=[("x-extra", "client"), ("user-agent", "custom")],
+      timeout=Some(60000),
     )
     defer client.close()
     assert_eq(client.get("/0").text(), "landed")
@@ -123,7 +133,10 @@ async test "fetch: base URL, query and headers combine as httpx combines them" {
 ///|
 async test "fetch: redirects are followed, capped, not followed at all, and a loop ends" {
   with_servers((port, _, _) => {
-    let client = @moonfetch.Client::new(base_url="http://127.0.0.1:\{port}")
+    let client = @moonfetch.Client::new(
+      base_url="http://127.0.0.1:\{port}",
+      timeout=Some(60000),
+    )
     defer client.close()
     let r = client.get("/redirect/3")
     assert_eq(r.text(), "landed")
@@ -142,7 +155,10 @@ async test "fetch: redirects are followed, capped, not followed at all, and a lo
 ///|
 async test "fetch: a 303 and a POST's 302 turn into GET; a 307 keeps the method and body" {
   with_servers((port, _, _) => {
-    let client = @moonfetch.Client::new(base_url="http://127.0.0.1:\{port}")
+    let client = @moonfetch.Client::new(
+      base_url="http://127.0.0.1:\{port}",
+      timeout=Some(60000),
+    )
     defer client.close()
     let seen = client.post("/see-other", body=Text("x"))
     assert_eq(echoed(seen, "method"), "GET")
@@ -157,9 +173,11 @@ async test "fetch: a 303 and a POST's 302 turn into GET; a 307 keeps the method 
 ///|
 async test "fetch: credentials stay with their origin across a redirect" {
   with_servers((port, other, _) => {
-    let client = @moonfetch.Client::new(base_url="http://localhost:\{port}", headers=[
-      ("authorization", "Bearer t"),
-    ])
+    let client = @moonfetch.Client::new(
+      base_url="http://localhost:\{port}",
+      headers=[("authorization", "Bearer t")],
+      timeout=Some(60000),
+    )
     defer client.close()
     assert_eq(echoed(client.get("/found"), "auth"), "Bearer t")
     let away = client.get("/away")
@@ -171,7 +189,10 @@ async test "fetch: credentials stay with their origin across a redirect" {
 ///|
 async test "fetch: a slow answer is a Timeout, and checked raises for 4xx and 5xx" {
   with_servers((port, _, _) => {
-    let client = @moonfetch.Client::new(base_url="http://127.0.0.1:\{port}")
+    let client = @moonfetch.Client::new(
+      base_url="http://127.0.0.1:\{port}",
+      timeout=Some(60000),
+    )
     defer client.close()
     assert_true(
       refusal(() => client.get("/slow", timeout=200))
@@ -192,13 +213,21 @@ async test "fetch: a slow answer is a Timeout, and checked raises for 4xx and 5x
 ///|
 async test "fetch: a connection the server closes is not kept, and HEAD reads no body" {
   with_servers(secure=true, (port, _, accepted) => {
-    let client = @moonfetch.Client::new(tls=trusting(), http2=false)
+    let client = @moonfetch.Client::new(
+      tls=trusting(),
+      http2=false,
+      timeout=Some(60000),
+    )
     defer client.close()
     assert_eq(client.get("https://localhost:\{port}/close").text(), "closing")
     assert_eq(client.get("https://localhost:\{port}/close").text(), "closing")
     assert_eq(accepted.val, 2)
     for http2 in [false, true] {
-      let c = @moonfetch.Client::new(tls=trusting(), http2~)
+      let c = @moonfetch.Client::new(
+        tls=trusting(),
+        http2~,
+        timeout=Some(60000),
+      )
       defer c.close()
       let r = c.head("https://localhost:\{port}/")
       assert_eq(r.status, 200)
@@ -210,7 +239,10 @@ async test "fetch: a connection the server closes is not kept, and HEAD reads no
 ///|
 async test "fetch: a kept connection the server dropped is retried on a new one" {
   with_servers((port, _, accepted) => {
-    let client = @moonfetch.Client::new(base_url="http://127.0.0.1:\{port}")
+    let client = @moonfetch.Client::new(
+      base_url="http://127.0.0.1:\{port}",
+      timeout=Some(60000),
+    )
     defer client.close()
     assert_eq(client.get("/drop").text(), "dropped after")
     // Give the close time to arrive, so the kept connection is dead when it is reused.
@@ -223,7 +255,10 @@ async test "fetch: a kept connection the server dropped is retried on a new one"
 ///|
 async test "fetch: a body cut short raises rather than waiting or passing for whole" {
   with_servers((port, _, _) => {
-    let client = @moonfetch.Client::new(base_url="http://127.0.0.1:\{port}")
+    let client = @moonfetch.Client::new(
+      base_url="http://127.0.0.1:\{port}",
+      timeout=Some(60000),
+    )
     defer client.close()
     let cut = try client.post("/truncate") catch {
       _ => true
@@ -238,7 +273,7 @@ async test "fetch: a body cut short raises rather than waiting or passing for wh
 ///|
 async test "fetch: after an HTTP/2 GOAWAY the next request opens a new connection" {
   with_servers(secure=true, (port, _, accepted) => {
-    let client = @moonfetch.Client::new(tls=trusting())
+    let client = @moonfetch.Client::new(tls=trusting(), timeout=Some(60000))
     defer client.close()
     assert_eq(client.get("https://localhost:\{port}/goaway").text(), "going")
     @async.sleep(100)
@@ -271,9 +306,11 @@ async test "fetch: two megabytes up and down, over both versions" {
 ///|
 async test "fetch: a one-off request, and URLs that are not http" {
   with_servers((port, _, _) => {
-    let r = @moonfetch.get("http://127.0.0.1:\{port}/echo", query=[
-      ("one", "off"),
-    ])
+    let r = @moonfetch.get(
+      "http://127.0.0.1:\{port}/echo",
+      query=[("one", "off")],
+      timeout=60000,
+    )
     assert_eq(echoed(r, "query"), "one=off")
     assert_eq(echoed(r, "agent"), "moonfetch")
     assert_true(
@@ -291,6 +328,7 @@ async test "fetch: gzip and deflate come back decoded, both deflate forms, over 
         base_url="https://localhost:\{port}",
         tls=trusting(),
         http2~,
+        timeout=Some(60000),
       )
       defer client.close()
       let g = client.get("/gzip")
@@ -305,7 +343,11 @@ async test "fetch: gzip and deflate come back decoded, both deflate forms, over 
       assert_eq(raw.header("content-encoding"), Some("gzip"))
       assert_true(raw.body != b"compressed hello")
     }
-    let plain = @moonfetch.Client::new(tls=trusting(), compression=false)
+    let plain = @moonfetch.Client::new(
+      tls=trusting(),
+      compression=false,
+      timeout=Some(60000),
+    )
     defer plain.close()
     let r = plain.get("https://localhost:\{port}/gzip")
     assert_eq(r.header("content-encoding"), Some("gzip"))
@@ -315,7 +357,10 @@ async test "fetch: gzip and deflate come back decoded, both deflate forms, over 
 ///|
 async test "fetch: a chunked body, a body to the close, and 103 Early Hints before the answer" {
   with_servers((port, _, accepted) => {
-    let client = @moonfetch.Client::new(base_url="http://127.0.0.1:\{port}")
+    let client = @moonfetch.Client::new(
+      base_url="http://127.0.0.1:\{port}",
+      timeout=Some(60000),
+    )
     defer client.close()
     assert_eq(client.get("/chunked").text(), "in pieces")
     assert_eq(client.get("/hints").text(), "after hints")

@@ -1,0 +1,93 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitstack/moonfetch"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+  "moonbitstack/moonhttp/method",
+  "moonbitstack/moontls/tls",
+}
+
+// Values
+pub async fn delete(StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
+
+pub async fn get(StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
+
+pub async fn head(StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
+
+pub let idle : Int32
+
+pub async fn options(StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
+
+pub async fn patch(StringView, body? : Body, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
+
+pub async fn post(StringView, body? : Body, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
+
+pub async fn put(StringView, body? : Body, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
+
+pub let redirects : Int32
+
+pub async fn request(@method.Method, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], body? : Body, timeout? : Int32, redirects? : Int32) -> Response
+
+pub let timeout : Int32
+
+// Errors
+pub(all) suberror Refused {
+  Status(status~ : Int32, url~ : String)
+  Redirects(limit~ : Int32)
+  Reset(code~ : Int32)
+  Timeout(limit~ : Int32)
+  Url(String)
+} derive(Eq, @debug.Debug)
+pub fn Refused::equal(Self, Self) -> Bool
+pub fn Refused::not_equal(Self, Self) -> Bool
+pub fn Refused::output(Self, &Logger) -> Unit
+pub fn Refused::to_repr(Self) -> @debug.Repr
+pub fn Refused::to_string(Self) -> String
+pub impl Show for Refused
+
+// Types and methods
+pub(all) enum Body {
+  Empty
+  Text(String)
+  Bytes(Bytes)
+  Json(Json)
+  Form(Array[(String, String)])
+} derive(Eq, @debug.Debug)
+pub fn Body::equal(Self, Self) -> Bool
+pub fn Body::not_equal(Self, Self) -> Bool
+pub fn Body::to_repr(Self) -> @debug.Repr
+
+type Client
+pub fn Client::close(Self) -> Unit
+pub async fn Client::delete(Self, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
+pub async fn Client::get(Self, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
+pub async fn Client::head(Self, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
+pub fn Client::new(base_url? : String, headers? : Array[(String, String)], timeout? : Int32?, redirects? : Int32, http2? : Bool, compression? : Bool, idle? : Int32, tls? : @tls.Client) -> Self raise Refused
+pub async fn Client::options(Self, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
+pub async fn Client::patch(Self, StringView, body? : Body, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
+pub async fn Client::post(Self, StringView, body? : Body, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
+pub async fn Client::put(Self, StringView, body? : Body, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
+pub async fn Client::request(Self, @method.Method, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], body? : Body, timeout? : Int32, redirects? : Int32) -> Response
+
+pub(all) struct Response {
+  status : Int32
+  reason : String
+  version : String
+  headers : Array[(String, String)]
+  url : String
+  body : Bytes
+} derive(Eq, @debug.Debug)
+pub fn Response::checked(Self) -> Self raise Refused
+pub fn Response::equal(Self, Self) -> Bool
+pub fn Response::header(Self, StringView) -> String?
+pub fn Response::is_success(Self) -> Bool
+pub fn Response::json(Self) -> Json raise @json.ParseError
+pub fn Response::not_equal(Self, Self) -> Bool
+pub fn Response::text(Self) -> String
+pub fn Response::to_repr(Self) -> @debug.Repr
+pub fn Response::values(Self, StringView) -> Array[String]
+
+// Type aliases
+
+// Traits

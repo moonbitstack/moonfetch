@@ -1,0 +1,56 @@
+// An HTTP client: HTTP Semantics, RFC 9110: https://www.rfc-editor.org/rfc/rfc9110
+// HTTP/1.1, RFC 9112: https://www.rfc-editor.org/rfc/rfc9112
+// HTTP/2, RFC 9113: https://www.rfc-editor.org/rfc/rfc9113
+//
+// Connections are moonnet's, which has sockets on the native and wasm backends only, so the
+// transport files are limited to those two.
+import {
+  "moonbitstack/moonnet/tcp",
+  "moonbitstack/moontls/tls",
+  "moonbitstack/mooncred/x509",
+  "moonbitstack/mooncred/roots",
+  "moonbitstack/moonhttp/http1",
+  "moonbitstack/moonhttp/http2",
+  "moonbitstack/moonhttp/header",
+  "moonbitstack/moonhttp/method",
+  "moonbitstack/moonurl",
+  "moonbitstack/moonzip/gzip",
+  "moonbitstack/moonzip/zlib",
+  "moonbitstack/moonzip/deflate",
+  "moonbitlang/async",
+  "moonbitlang/core/cmp",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
+  "moonbitlang/core/string",
+}
+
+import {
+  "moonbitstack/moonfetch",
+  "moonbitstack/moonnet/tcp",
+  "moonbitstack/moontls/tls",
+  "moonbitstack/moontls/alert",
+  "moonbitstack/mooncred/x509",
+  "moonbitstack/moonhttp/http1",
+  "moonbitstack/moonhttp/http2",
+  "moonbitstack/moonhttp/header",
+  "moonbitstack/moonzip/gzip",
+  "moonbitstack/moonzip/zlib",
+  "moonbitstack/moonzip/deflate",
+  "moonbitlang/async",
+  "moonbitlang/core/encoding/utf8",
+} for "test"
+
+warnings = "-29"
+
+options(
+  targets: {
+    "client.mbt": [ "native", "wasm" ],
+    "pool.mbt": [ "native", "wasm" ],
+    "h1.mbt": [ "native", "wasm" ],
+    "h2.mbt": [ "native", "wasm" ],
+    "fetch_test.mbt": [ "native", "wasm" ],
+    "stress_test.mbt": [ "native" ],
+    "server_test.mbt": [ "native", "wasm" ],
+    "fixtures_test.mbt": [ "native", "wasm" ],
+  },
+)

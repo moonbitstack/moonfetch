@@ -1,0 +1,16 @@
+// Everything this repository does, in one run: `moon run src/examples/tour --target native`.
+pkgtype(kind: "executable")
+
+import {
+  "moonbitstack/moonfetch",
+  "moonbitlang/async",
+}
+
+warnings = "-29"
+
+options(
+  targets: {
+    "tour.mbt": [ "native", "wasm" ],
+    "elsewhere.mbt": [ "js", "wasm-gc" ],
+  },
+)

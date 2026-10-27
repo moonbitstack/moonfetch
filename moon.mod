@@ -10,7 +10,7 @@ license = "Apache-2.0"
 
 keywords = [ "http", "client", "fetch", "async", "requests", "moonbit" ]
 
-description = "moonfetch — an HTTP client for MoonBit (← httpx, reqwest): one call for a request, a Client that keeps connections, HTTP/1.1 and HTTP/2 chosen by ALPN, redirects, timeouts and JSON."
+description = "An HTTP client for MoonBit, synchronous or asynchronous."
 
 source = "src"
 

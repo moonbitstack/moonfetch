@@ -1,6 +1,6 @@
 name = "moonbitstack/moonfetch"
 
-version = "0.1.2"
+version = "0.1.3"
 
 readme = "README.md"
 
@@ -8,7 +8,27 @@ repository = "https://github.com/moonbitstack/moonfetch"
 
 license = "Apache-2.0"
 
-keywords = [ "http", "client", "fetch", "async", "requests", "moonbit" ]
+keywords = [
+  "http",
+  "http-client",
+  "client",
+  "fetch",
+  "requests",
+  "httpx",
+  "reqwest",
+  "async",
+  "http1",
+  "http2",
+  "https",
+  "tls",
+  "alpn",
+  "redirect",
+  "gzip",
+  "deflate",
+  "json",
+  "form",
+  "moonbit",
+]
 
 description = "An HTTP client for MoonBit, synchronous or asynchronous."
 

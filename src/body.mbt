@@ -4,6 +4,7 @@
 ///|
 /// A request body. One value, so a request cannot carry two bodies for the library to choose
 /// between.
+#derive(Eq, Debug)
 pub(all) enum Body {
   Empty
   Text(String)
@@ -11,7 +12,7 @@ pub(all) enum Body {
   Json(Json)
   /// `application/x-www-form-urlencoded`, in the order given.
   Form(Array[(String, String)])
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Body with Eq::{equal, not_equal}

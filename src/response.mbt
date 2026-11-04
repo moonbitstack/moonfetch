@@ -4,6 +4,7 @@
 ///|
 /// What moonfetch itself refuses. Errors from below pass through as they are: a socket that
 /// will not connect, a TLS alert, a response that does not parse.
+#derive(Eq, Debug)
 pub(all) suberror Refused {
   /// `checked` on a 4xx or 5xx response.
   Status(status~ : Int32, url~ : String)
@@ -16,7 +17,7 @@ pub(all) suberror Refused {
   Timeout(limit~ : Int32)
   /// A URL that does not parse, or names a scheme other than http and https.
   Url(String)
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Refused with Eq::{equal, not_equal}
@@ -42,6 +43,7 @@ pub extend Refused with Show::{output, to_string}
 ///|
 /// A response, read whole. Header names are lower case, as HTTP/2 writes them, and keep the
 /// order they arrived in.
+#derive(Eq, Debug)
 pub(all) struct Response {
   status : Int32
   reason : String
@@ -50,7 +52,7 @@ pub(all) struct Response {
   /// The URL that answered, after any redirects.
   url : String
   body : Bytes
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Response with Eq::{equal, not_equal}

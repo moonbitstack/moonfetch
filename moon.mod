@@ -1,6 +1,6 @@
 name = "moonbitstack/moonfetch"
 
-version = "0.1.4"
+version = "0.1.5"
 
 readme = "README.md"
 
@@ -35,10 +35,10 @@ description = "An HTTP client for MoonBit, synchronous or asynchronous."
 source = "src"
 
 import {
-  "moonbitstack/moonnet@0.1.9",
+  "moonbitstack/moonnet@0.1.10",
   "moonbitstack/moontls@0.9.14",
   "moonbitstack/mooncred@0.6.9",
-  "moonbitstack/moonhttp@0.15.6",
+  "moonbitstack/moonhttp@0.15.7",
   "moonbitstack/moonurl@0.2.5",
   "moonbitstack/moonzip@0.3.6",
   "moonbitlang/async@0.22.5",

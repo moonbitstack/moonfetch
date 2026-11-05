@@ -117,7 +117,7 @@ fn h2_allowed(name : String) -> Bool {
 /// Hand an event to the stream it belongs to. Synchronous: the queues never block, so a slow
 /// reader holds its own window shut instead of the whole connection.
 fn H2::give(self : H2, id : Int32, piece : Piece) -> Unit {
-  match self.streams.get(id + 2) {
+  match self.streams.get(id) {
     Some(stream) => {
       ignore(stream.queue.try_put(piece) catch { _ => false })
       stream.ready = true

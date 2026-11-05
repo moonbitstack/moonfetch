@@ -2,16 +2,21 @@
 // SPDX-License-Identifier: Apache-2.0
 
 ///|
-/// How much is read from a connection at once: a TLS record's worth. The async default is a
-/// kibibyte.
-let chunk : Int32 = 16384
-
-///|
 /// Where a request goes: scheme, host and port, the unit connections are kept by (RFC 6454).
 priv struct Origin {
   scheme : String
   host : String
   port : Int32
+}
+
+///|
+fn Origin::of(url : @moonurl.Url) -> Origin {
+  let scheme = url.scheme.unwrap_or("http")
+  let port = match url.port {
+    Some(p) => p
+    None => if scheme == "https" { 443 } else { 80 }
+  }
+  { scheme, host: url.host.unwrap_or(""), port, }
 }
 
 ///|
@@ -38,52 +43,52 @@ priv enum Link {
 
 ///|
 /// Idle HTTP/1.1 connections, a few per origin, and one HTTP/2 connection per origin, which
-/// carries every request to it.
+/// carries every request to it. Both maps are keyed by the origin.
 priv struct Pool {
   idle : Map[String, Array[@tcp.Conn]]
   h2 : Map[String, H2]
   keep : Int32
+  /// One dial at a time: without it a hundred requests that start together open a hundred
+  /// connections and throw all but one away.
+  dial : @async.Mutex
 }
 
 ///|
 fn Pool::new(keep : Int32) -> Pool {
-  { idle: Map([]), h2: Map([]), keep, }
+  { idle: Map([]), h2: Map([]), keep, dial: @async.Mutex(), }
 }
 
 ///|
-async fn Pool::checkout(
-  self : Pool,
-  origin : Origin,
-  tls : @tls.Client,
-) -> Link {
-  let key = origin.key()
-  if self.h2.get(key) is Some(h2) {
-    if !h2.dead {
-      return H2(h2, reused=true)
+/// The HTTP/2 connection for an origin, when it can still take work.
+fn Pool::live(self : Pool, key : String) -> H2? {
+  match self.h2.get(key) {
+    Some(h2) if !h2.dead && !h2.going => Some(h2)
+    Some(h2) => {
+      self.forget(key, h2)
+      None
     }
-    self.forget(origin, h2)
+    None => None
   }
-  if self.idle.get(key) is Some(conns) && conns.pop() is Some(conn) {
-    return H1(conn, reused=true)
-  }
-  let secure = if origin.scheme == "https" { Some(tls) } else { None }
-  let conn = @tcp.dial(origin.host, port=origin.port, tls?=secure)
-  guard conn.alpn() is Some("h2") else { return H1(conn, reused=false) }
-  // Another request may have dialled the same origin meanwhile; one HTTP/2 connection is enough.
-  if self.h2.get(key) is Some(other) && !other.dead {
-    conn.close()
-    return H2(other, reused=true)
-  }
-  let h2 = H2::new(conn)
+}
+
+///|
+fn Pool::keep_h2(self : Pool, key : String, h2 : H2) -> Unit {
   self.h2[key] = h2
-  H2(h2, reused=false)
+}
+
+///|
+/// Take an idle connection for the origin, or `None`.
+fn Pool::take(self : Pool, key : String) -> @tcp.Conn? {
+  match self.idle.get(key) {
+    Some(conns) => conns.pop()
+    None => None
+  }
 }
 
 ///|
 /// Drop an HTTP/2 connection that has failed or been told to go away.
-fn Pool::forget(self : Pool, origin : Origin, h2 : H2) -> Unit {
+fn Pool::forget(self : Pool, key : String, h2 : H2) -> Unit {
   h2.dead = true
-  let key = origin.key()
   if self.h2.get(key) is Some(kept) && physical_equal(kept, h2) {
     self.h2.remove(key)
   }
@@ -92,8 +97,7 @@ fn Pool::forget(self : Pool, origin : Origin, h2 : H2) -> Unit {
 
 ///|
 /// Keep a connection for the next request to its origin, or close it when enough are kept.
-fn Pool::checkin(self : Pool, origin : Origin, conn : @tcp.Conn) -> Unit {
-  let key = origin.key()
+fn Pool::checkin(self : Pool, key : String, conn : @tcp.Conn) -> Unit {
   let conns = match self.idle.get(key) {
     Some(conns) => conns
     None => {
@@ -122,3 +126,8 @@ fn Pool::close(self : Pool) -> Unit {
   self.idle.clear()
   self.h2.clear()
 }
+
+///|
+/// How much is read from a connection at once: a TLS record's worth. The async default is a
+/// kibibyte.
+let chunk : Int32 = 16384

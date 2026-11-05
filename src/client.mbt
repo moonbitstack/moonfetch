@@ -38,8 +38,12 @@ struct Client {
   timeout : Int32?
   redirects : Int32
   compression : Bool
+  h2c : Bool
+  limits : Limits
   tls : @tls.Client
   pool : Pool
+  jar : Jar?
+  proxy : Proxy?
 }
 
 ///|
@@ -48,9 +52,12 @@ struct Client {
 /// `base_url` is the prefix relative URLs are joined to, as httpx joins them: its path is kept,
 /// so `/users` under `https://a.example/api` is `https://a.example/api/users`. `headers` go on
 /// every request. `timeout` bounds each request, redirects included; `None` waits for ever.
-/// `redirects` caps how many are followed; 0 follows none. `http2` offers HTTP/2 by ALPN.
+/// `redirects` caps how many are followed; 0 follows none. `http2` offers HTTP/2 by ALPN;
+/// `h2c` speaks HTTP/2 with prior knowledge over `http`, where there is no ALPN to ask.
 /// `compression` asks for gzip or deflate and decodes what comes back, as httpx and reqwest do;
 /// a request that names its own `accept-encoding` gets the body as sent.
+/// `limits` bounds what a buffered response may hold. `jar` keeps cookies across requests.
+/// `proxy` sends the connection through an HTTP or SOCKS5 proxy.
 /// `tls` judges servers' certificates, the Mozilla roots when not given; its ALPN list is set
 /// by `http2`.
 pub fn Client::new(
@@ -61,6 +68,10 @@ pub fn Client::new(
   http2~ : Bool = true,
   compression~ : Bool = true,
   idle~ : Int32 = idle,
+  h2c~ : Bool = false,
+  limits~ : Limits = limits,
+  jar? : Jar,
+  proxy? : Proxy,
   tls? : @tls.Client,
 ) -> Client raise Refused {
   let base = match base_url {
@@ -82,8 +93,12 @@ pub fn Client::new(
     timeout,
     redirects,
     compression,
+    h2c,
+    limits,
     tls,
     pool: Pool::new(idle),
+    jar,
+    proxy,
   }
 }
 
@@ -145,16 +160,6 @@ fn Client::locate(
 }
 
 ///|
-fn Origin::of(url : @moonurl.Url) -> Origin {
-  let scheme = url.scheme.unwrap_or("http")
-  let port = match url.port {
-    Some(p) => p
-    None => if scheme == "https" { 443 } else { 80 }
-  }
-  { scheme, host: url.host.unwrap_or(""), port, }
-}
-
-///|
 fn has(fields : Array[(String, String)], name : String) -> Bool {
   fields.iter().any(f => f.0.to_lower() == name)
 }
@@ -178,19 +183,87 @@ fn merge(
 }
 
 ///|
-/// The octets, and the content type they go out under unless the caller names one.
-fn Body::encode(self : Body) -> (Bytes, String?) {
-  match self {
-    Empty => (b"", None)
-    Text(text) => (@utf8.encode(text), Some("text/plain; charset=utf-8"))
-    Bytes(bytes) => (bytes, Some("application/octet-stream"))
-    Json(value) => (@utf8.encode(value.stringify()), Some("application/json"))
-    Form(pairs) =>
-      (
-        @utf8.encode(@moonurl.Query::new(pairs~).encode()),
-        Some("application/x-www-form-urlencoded"),
-      )
+/// A fresh connection to the origin, through the proxy and over TLS as the client is set up.
+async fn Client::open(self : Client, origin : Origin) -> @tcp.Conn {
+  let tls = if origin.scheme == "https" { Some(self.tls) } else { None }
+  match self.proxy {
+    None => @tcp.dial(origin.host, port=origin.port, tls?)
+    Some(proxy) =>
+      match proxy.scheme {
+        "http" | "https" => {
+          // An `https` proxy is spoken to over TLS; the tunnel inside carries the origin's TLS.
+          let outer = if proxy.scheme == "https" {
+            Some({ ..self.tls, alpn: ["http/1.1"], })
+          } else {
+            None
+          }
+          let conn = @tcp.dial(proxy.host, port=proxy.port, tls?=outer)
+          if origin.scheme == "https" {
+            proxy.tunnel(conn, origin.host, origin.port)
+            conn.upgrade(self.tls, origin.host)
+          } else {
+            conn
+          }
+        }
+        _ => {
+          let conn = @tcp.dial(proxy.host, port=proxy.port)
+          proxy.socks5(conn, origin.host, origin.port)
+          if origin.scheme == "https" {
+            conn.upgrade(self.tls, origin.host)
+          } else {
+            conn
+          }
+        }
+      }
   }
+}
+
+///|
+/// Whether a fresh connection to this origin should speak HTTP/2.
+fn Client::wants_h2(self : Client, origin : Origin, conn : @tcp.Conn) -> Bool {
+  if origin.scheme == "http" {
+    self.h2c
+  } else {
+    conn.alpn() is Some("h2")
+  }
+}
+
+///|
+async fn Client::link(self : Client, origin : Origin) -> Link {
+  let key = origin.key()
+  match self.pool.live(key) {
+    Some(h2) => return H2(h2, reused=true)
+    None => ()
+  }
+  if self.pool.take(key) is Some(conn) {
+    return H1(conn, reused=true)
+  }
+  // A dial is shared: whoever gets here first connects, the rest take what it opened.
+  self.pool.dial.acquire()
+  defer self.pool.dial.release()
+  match self.pool.live(key) {
+    Some(h2) => return H2(h2, reused=true)
+    None => ()
+  }
+  if self.pool.take(key) is Some(conn) {
+    return H1(conn, reused=true)
+  }
+  let conn = self.open(origin)
+  if self.wants_h2(origin, conn) {
+    let h2 = H2::new(conn)
+    self.pool.keep_h2(key, h2)
+    return H2(h2, reused=false)
+  }
+  H1(conn, reused=false)
+}
+
+///|
+/// Whether a failed exchange may be sent again: only when the connection had carried a request
+/// before, its body can be replayed, and the method or the server says nothing was done.
+fn retryable(reused : Bool, out : Outgoing, error : Error) -> Bool {
+  guard reused else { return false }
+  guard out.payload is Whole(_) else { return false }
+  out.verb.is_idempotent() || (error is Reset(code~) && code == refused_stream)
 }
 
 ///|
@@ -200,36 +273,26 @@ async fn Client::exchange(
   origin : Origin,
   out : Outgoing,
 ) -> Reply {
-  match self.pool.checkout(origin, self.tls) {
+  let key = origin.key()
+  match self.link(origin) {
     H2(h2, reused~) =>
-      h2.exchange(out) catch {
+      h2.exchange(out, self.limits.body) catch {
         e => {
-          self.pool.forget(origin, h2)
-          // A connection the server went away from fails the next request on it; one it says
-          // it never processed (REFUSED_STREAM, RFC 9113 §8.7) is safe to send again whatever
-          // the method.
-          guard reused &&
-            (
-              out.verb.is_idempotent() ||
-              (e is Reset(code=c) && c == refused_stream)
-            ) else {
-            raise e
-          }
+          self.pool.forget(key, h2)
+          guard retryable(reused, out, e) else { raise e }
           return self.exchange(origin, out)
         }
       }
     H1(conn, reused~) => {
-      let reply = h1(conn, out) catch {
+      let reply = h1(conn, out, self.limits.body) catch {
         e => {
           conn.close()
-          // A kept connection the server closed while it sat idle fails on first use, before
-          // the request reached anything; an idempotent request goes again on another.
-          guard reused && out.verb.is_idempotent() else { raise e }
+          guard retryable(reused, out, e) else { raise e }
           return self.exchange(origin, out)
         }
       }
       if reply.reusable {
-        self.pool.checkin(origin, conn)
+        self.pool.checkin(key, conn)
       } else {
         conn.close()
       }
@@ -239,18 +302,24 @@ async fn Client::exchange(
 }
 
 ///|
-async fn Client::send(
+/// The headers a request goes out with, and the request body as the transport wants it.
+async fn Client::pack(
   self : Client,
   verb : @method.Method,
   url : @moonurl.Url,
   fields : Array[(String, String)],
   body : Body,
-) -> Response {
+  decode~ : Bool,
+) -> (Outgoing, Bool) {
   let origin = Origin::of(url)
-  let (payload, kind) = body.encode()
+  let (payload, kind) = body.payload()
   let all = fields.copy()
   if kind is Some(k) && !has(all, "content-type") {
     all.push(("content-type", k))
+  }
+  // A length this side knows is declared; HTTP/1.1 writes its own from the framing.
+  if payload.length() is Some(n) && !has(all, "content-length") {
+    all.push(("content-length", n.to_string()))
   }
   if !has(all, "user-agent") {
     all.push(("user-agent", "moonfetch"))
@@ -258,14 +327,25 @@ async fn Client::send(
   if !has(all, "accept") {
     all.push(("accept", "*/*"))
   }
-  let decode = self.compression && !has(all, "accept-encoding")
-  if decode {
+  if self.jar is Some(jar) && !has(all, "cookie") {
+    let kept = jar.cookies(url)
+    if kept != "" {
+      all.push(("cookie", kept))
+    }
+  }
+  let decoding = decode && self.compression && !has(all, "accept-encoding")
+  if decoding {
     all.push(("accept-encoding", "gzip, deflate"))
   }
   let path = if url.path == "" { "/" } else { url.path }
   let target = match url.query {
     Some(q) => path + "?" + q
     None => path
+  }
+  // A cleartext request through an HTTP proxy is sent in absolute form (RFC 9112 §3.2.2).
+  let target = match self.proxy {
+    Some(proxy) if proxy.absolute() && origin.scheme == "http" => url.encode()
+    _ => target
   }
   let out = {
     verb,
@@ -275,8 +355,21 @@ async fn Client::send(
     fields: all.map(f => @header.Header::of(f.0, f.1)),
     payload,
   }
-  let reply = self.exchange(origin, out)
-  let (headers, body) = if decode {
+  (out, decoding)
+}
+
+///|
+/// Keep what the response set, and read the body as the codings say.
+async fn Client::settle(
+  self : Client,
+  url : @moonurl.Url,
+  reply : Reply,
+  decoding : Bool,
+) -> Response {
+  if self.jar is Some(jar) {
+    jar.store(url, reply.headers.filter(h => h.0 == "set-cookie").map(h => h.1))
+  }
+  let (headers, body) = if decoding {
     decoded(reply.headers, reply.body)
   } else {
     (reply.headers, reply.body)
@@ -289,6 +382,19 @@ async fn Client::send(
     url: url.encode(),
     body,
   }
+}
+
+///|
+async fn Client::send(
+  self : Client,
+  verb : @method.Method,
+  url : @moonurl.Url,
+  fields : Array[(String, String)],
+  body : Body,
+) -> Response {
+  let (out, decoding) = self.pack(verb, url, fields, body, decode=true)
+  let reply = self.exchange(Origin::of(url), out)
+  self.settle(url, reply, decoding)
 }
 
 ///|
@@ -324,7 +430,8 @@ fn decoded(
 ///|
 /// Send, then follow redirects (RFC 9110 §15.4). A 303, and a 301 or 302 to a POST, turn into
 /// a GET without a body, as browsers and every client in use do. Credentials stay with their
-/// origin: `authorization` and `cookie` are dropped when a redirect leaves it.
+/// origin: `authorization` and `cookie` are dropped when a redirect leaves it, and the jar
+/// supplies the cookies the new origin has.
 async fn Client::follow(
   self : Client,
   hop : Int32,
@@ -581,4 +688,14 @@ pub async fn patch(
   redirects? : Int32,
 ) -> Response {
   request(Patch, url, body?, query?, headers?, timeout?, redirects?)
+}
+
+///|
+/// A fresh connection to the URL's origin, with the client's TLS and proxy rules applied and
+/// nothing else on it. The caller owns it; it is not taken from the pool and is not kept. For
+/// a protocol that starts as HTTP and then becomes something else — WebSocket, say.
+pub async fn Client::connect(self : Client, url : StringView) -> @tcp.Conn {
+  let target = parse(url)
+  check(target, url)
+  self.open(Origin::of(target))
 }

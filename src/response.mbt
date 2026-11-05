@@ -17,6 +17,10 @@ pub(all) suberror Refused {
   Timeout(limit~ : Int32)
   /// A URL that does not parse, or names a scheme other than http and https.
   Url(String)
+  /// The response body passed `limit`, found while reading.
+  Exceeded(limit~ : Int32, got~ : Int32)
+  /// The proxy refused the tunnel, or does not speak what it was asked for.
+  Proxy(String)
 }
 
 ///|
@@ -34,6 +38,9 @@ pub impl Show for Refused with fn output(self, logger) {
       logger.write_string("stream reset with HTTP/2 error \{code}")
     Timeout(limit~) => logger.write_string("no answer within \{limit} ms")
     Url(why) => logger.write_string("bad URL: \{why}")
+    Exceeded(limit~, got~) =>
+      logger.write_string("body over \{limit} octets: \{got} so far")
+    Proxy(why) => logger.write_string("proxy: \{why}")
   }
 }
 

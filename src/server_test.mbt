@@ -40,6 +40,10 @@ priv enum After {
   Eof
   /// Send a 103 Early Hints first (HTTP/1.1).
   Hints
+  /// Send the body in pieces, a few milliseconds apart.
+  Steps
+  /// Chunked, ending with trailer fields (HTTP/1.1).
+  Trailers
 }
 
 ///|
@@ -60,21 +64,35 @@ async fn route(
   let text = [("content-type", "text/plain")]
   match path {
     "/" => (200, text, b"hello", Keep)
-    "/echo" => {
-      let echoed : Json = {
-        "method": Json(verb),
-        "query": Json(query),
-        "body": Json(@utf8.decode_lossy(body[:])),
-        "type": Json(field(fields, "content-type")),
-        "agent": Json(field(fields, "user-agent")),
-        "auth": Json(field(fields, "authorization")),
-        "extra": Json(field(fields, "x-extra")),
-        "version": Json(version),
+    "/echo" | "/cookie/read" =>
+      (
+        200,
+        [("content-type", "application/json")],
+        echo(verb, query, fields, body, version),
+        Keep,
+      )
+    "/multipart" => {
+      let kind = @moonmime.media_type(field(fields, "content-type"))
+      let mark = kind.param("boundary").unwrap_or("")
+      let parts = @moonmime.multipart(body[:], mark) catch { _ => [] }
+      let out = []
+      for part in parts {
+        let (name, filename) = match part.disposition() {
+          Some(d) => (d.param("name").unwrap_or(""), d.filename().unwrap_or(""))
+          None => ("", "")
+        }
+        out.push(
+          Json({
+            "name": Json(name),
+            "filename": Json(filename),
+            "body": Json(@utf8.decode_lossy(part.body[:])),
+          }),
+        )
       }
       (
         200,
         [("content-type", "application/json")],
-        @utf8.encode(echoed.stringify()),
+        @utf8.encode(Json(out).stringify()),
         Keep,
       )
     }
@@ -116,6 +134,20 @@ async fn route(
     "/chunked" => (200, text, b"in pieces", Chunked)
     "/eof" => (200, text, b"to the close", Eof)
     "/hints" => (200, text, b"after hints", Hints)
+    "/steps" => (200, text, b"one-two-three", Steps)
+    "/trailers" => (200, text, b"with trailers", Trailers)
+    "/cookie/set" =>
+      (
+        200,
+        [
+          ("set-cookie", "plain=1; Path=/"),
+          ("set-cookie", "deep=2; Path=/cookie"),
+          ("set-cookie", "secure=3; Path=/; Secure"),
+          ("set-cookie", "gone=4; Path=/; Max-Age=0"),
+        ],
+        b"set",
+        Keep,
+      )
     "/see-other" => (303, [("location", "/echo")], b"", Keep)
     "/found" => (302, [("location", "/echo")], b"", Keep)
     "/keep" => (307, [("location", "/echo")], b"", Keep)
@@ -180,7 +212,7 @@ async fn serve_h1(conn : @tcp.Conn, other : Int32, seen : Seen) -> Unit {
     )
     let framing : @http1.Body = match after {
       Truncate => Sized(100)
-      Chunked => Chunked
+      Chunked | Trailers | Steps => Chunked
       Eof => Closed
       _ => Sized(payload.length())
     }
@@ -197,11 +229,35 @@ async fn serve_h1(conn : @tcp.Conn, other : Int32, seen : Seen) -> Unit {
       out.write_bytes(wire.send(Informational(hint)))
     }
     out.write_bytes(wire.send(Response(response)))
+    if after is Steps {
+      conn.write(out.to_bytes())
+      for piece in step_pieces(payload) {
+        conn.write(wire.send(Data(piece)))
+        @async.sleep(40)
+      }
+      conn.write(wire.send(End([])))
+      wire.start_next()
+      continue
+    }
     if after is Chunked {
       for piece in [payload[0:3], payload[3:6], payload[6:]] {
         out.write_bytes(wire.send(Data(piece.to_owned())))
       }
       out.write_bytes(wire.send(End([])))
+      conn.write(out.to_bytes())
+      wire.start_next()
+      continue
+    }
+    if after is Trailers {
+      out.write_bytes(wire.send(Data(payload)))
+      out.write_bytes(
+        wire.send(
+          End([
+            @header.Header::of("x-sum", digest(payload)),
+            @header.Header::of("x-count", payload.length().to_string()),
+          ]),
+        ),
+      )
       conn.write(out.to_bytes())
       wire.start_next()
       continue
@@ -289,6 +345,17 @@ async fn serve_h2(conn : @tcp.Conn, other : Int32, seen : Seen) -> Unit {
           }
         }
         let bare = payload.length() == 0 || verb == "HEAD"
+        if after is Steps && !bare {
+          let pieces = step_pieces(payload)
+          wire.headers(stream, head)
+          conn.write(wire.take())
+          for i in 0..<pieces.length() {
+            wire.data(stream, pieces[i][:], end=i + 1 == pieces.length())
+            conn.write(wire.take())
+            @async.sleep(40)
+          }
+          continue
+        }
         wire.headers(stream, head, end=bare)
         if !bare {
           queued[stream] = payload
@@ -301,6 +368,46 @@ async fn serve_h2(conn : @tcp.Conn, other : Int32, seen : Seen) -> Unit {
       _ => ()
     }
   }
+}
+
+///|
+/// What the echo routes answer: the request as the server saw it.
+fn echo(
+  verb : String,
+  query : String,
+  fields : Array[(String, String)],
+  body : Bytes,
+  version : String,
+) -> Bytes {
+  let echoed : Json = {
+    "method": Json(verb),
+    "query": Json(query),
+    "body": Json(@utf8.decode_lossy(body[:])),
+    "type": Json(field(fields, "content-type")),
+    "agent": Json(field(fields, "user-agent")),
+    "auth": Json(field(fields, "authorization")),
+    "extra": Json(field(fields, "x-extra")),
+    "version": Json(version),
+    "length": Json(field(fields, "content-length")),
+    "cookie": Json(field(fields, "cookie")),
+    "origin": Json(field(fields, "origin")),
+  }
+  @utf8.encode(echoed.stringify())
+}
+
+///|
+/// A body cut into three pieces at the hyphens, for `Steps`.
+fn step_pieces(payload : Bytes) -> Array[Bytes] {
+  let pieces = []
+  let mut start = 0
+  for i in 0..<payload.length() {
+    if payload[i] == b'-' {
+      pieces.push(payload[start:i + 1].to_owned())
+      start = i + 1
+    }
+  }
+  pieces.push(payload[start:].to_owned())
+  pieces
 }
 
 ///|

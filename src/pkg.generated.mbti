@@ -5,7 +5,9 @@ import {
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
   "moonbitstack/moonhttp/method",
+  "moonbitstack/moonnet/tcp",
   "moonbitstack/moontls/tls",
+  "moonbitstack/moonurl",
 }
 
 // Values
@@ -16,6 +18,8 @@ pub async fn get(StringView, query? : Array[(String, String)], headers? : Array[
 pub async fn head(StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
 
 pub let idle : Int32
+
+pub let limits : Limits
 
 pub async fn options(StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
 
@@ -39,6 +43,8 @@ pub(all) suberror Refused {
   Reset(code~ : Int32)
   Timeout(limit~ : Int32)
   Url(String)
+  Exceeded(limit~ : Int32, got~ : Int32)
+  Proxy(String)
 }
 pub fn Refused::equal(Self, Self) -> Bool
 pub fn Refused::not_equal(Self, Self) -> Bool
@@ -48,29 +54,80 @@ pub fn Refused::to_string(Self) -> String
 pub impl Show for Refused
 
 // Types and methods
-#derive(Eq, @debug.Debug)
+#derive(Eq)
 pub(all) enum Body {
   Empty
   Text(String)
   Bytes(Bytes)
   Json(@json.Json)
   Form(Array[(String, String)])
+  Multipart(Array[Part])
+  Stream(Source)
 }
 pub fn Body::equal(Self, Self) -> Bool
 pub fn Body::not_equal(Self, Self) -> Bool
 pub fn Body::to_repr(Self) -> @debug.Repr
+pub impl @debug.Debug for Body
+
+pub(all) enum Chunk {
+  Data(Bytes)
+  End(Array[(String, String)])
+}
 
 type Client
 pub fn Client::close(Self) -> Unit
+pub async fn Client::connect(Self, StringView) -> @tcp.Conn
 pub async fn Client::delete(Self, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
 pub async fn Client::get(Self, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
 pub async fn Client::head(Self, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
-pub fn Client::new(base_url? : String, headers? : Array[(String, String)], timeout? : Int32?, redirects? : Int32, http2? : Bool, compression? : Bool, idle? : Int32, tls? : @tls.Client) -> Self raise Refused
+pub fn Client::new(base_url? : String, headers? : Array[(String, String)], timeout? : Int32?, redirects? : Int32, http2? : Bool, compression? : Bool, idle? : Int32, h2c? : Bool, limits? : Limits, jar? : Jar, proxy? : Proxy, tls? : @tls.Client) -> Self raise Refused
 pub async fn Client::options(Self, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
 pub async fn Client::patch(Self, StringView, body? : Body, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
 pub async fn Client::post(Self, StringView, body? : Body, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
 pub async fn Client::put(Self, StringView, body? : Body, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
 pub async fn Client::request(Self, @method.Method, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], body? : Body, timeout? : Int32, redirects? : Int32) -> Response
+pub async fn Client::stream(Self, @method.Method, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], body? : Body, timeout? : Int32, redirects? : Int32) -> Stream
+
+pub struct Jar {
+  // private fields
+}
+pub fn Jar::clear(Self) -> Unit
+pub async fn Jar::cookies(Self, @moonurl.Url) -> String
+pub fn Jar::new() -> Self
+pub fn Jar::size(Self) -> Int32
+pub async fn Jar::store(Self, @moonurl.Url, Array[String]) -> Unit
+
+pub(all) struct Limits {
+  head : Int32
+  fields : Int32
+  body : Int32
+}
+pub fn Limits::new(head? : Int32, fields? : Int32, body? : Int32) -> Self
+
+#derive(Eq)
+pub struct Part {
+  name : String
+  content : Bytes
+  filename : String?
+  content_type : String?
+}
+pub fn Part::content(Self) -> Bytes
+pub fn Part::content_type(Self) -> String?
+pub fn Part::equal(Self, Self) -> Bool
+pub fn Part::field(StringView, StringView) -> Self
+pub fn Part::file(StringView, StringView, Bytes, content_type? : StringView) -> Self
+pub fn Part::filename(Self) -> String?
+pub fn Part::name(Self) -> String
+pub fn Part::not_equal(Self, Self) -> Bool
+
+pub(all) struct Proxy {
+  scheme : String
+  host : String
+  port : Int32
+  user : String?
+  password : String?
+}
+pub fn Proxy::parse(StringView) -> Self raise Refused
 
 #derive(Eq, @debug.Debug)
 pub(all) struct Response {
@@ -90,6 +147,34 @@ pub fn Response::not_equal(Self, Self) -> Bool
 pub fn Response::text(Self) -> String
 pub fn Response::to_repr(Self) -> @debug.Repr
 pub fn Response::values(Self, StringView) -> Array[String]
+
+pub struct Source {
+  length : Int64?
+  step : async () -> Bytes?
+}
+pub fn Source::equal(Self, Self) -> Bool
+pub fn Source::length(Self) -> Int64?
+pub fn Source::new(async () -> Bytes?) -> Self
+pub async fn Source::next(Self) -> Bytes?
+pub fn Source::not_equal(Self, Self) -> Bool
+pub fn Source::sized(Int64, async () -> Bytes?) -> Self
+pub fn Source::to_repr(Self) -> @debug.Repr
+pub impl Eq for Source
+pub impl @debug.Debug for Source
+
+pub struct Stream {
+  // private fields
+}
+pub async fn Stream::bytes(Self, limit? : Int32) -> Bytes
+pub fn Stream::close(Self) -> Unit
+pub fn Stream::header(Self, StringView) -> String?
+pub fn Stream::headers(Self) -> Array[(String, String)]
+pub async fn Stream::next(Self) -> Chunk?
+pub fn Stream::reason(Self) -> String
+pub fn Stream::status(Self) -> Int32
+pub async fn Stream::text(Self, limit? : Int32) -> String
+pub fn Stream::url(Self) -> String
+pub fn Stream::version(Self) -> String
 
 // Type aliases
 

@@ -27,10 +27,32 @@ keywords = [
   "deflate",
   "json",
   "form",
+  "multipart",
+  "stream",
+  "streaming",
+  "sse",
+  "server-sent-events",
+  "websocket",
+  "ws",
+  "wss",
+  "cookie",
+  "cookie-jar",
+  "proxy",
+  "connect",
+  "socks5",
+  "h2c",
+  "http2-multiplexing",
+  "rfc6265",
+  "rfc6455",
+  "rfc1928",
+  "rfc7578",
+  "rfc9110",
+  "rfc9112",
+  "rfc9113",
   "moonbit",
 ]
 
-description = "An HTTP client for MoonBit, synchronous or asynchronous."
+description = "An HTTP and WebSocket client for MoonBit."
 
 source = "src"
 
@@ -41,5 +63,10 @@ import {
   "moonbitstack/moonhttp@0.15.7",
   "moonbitstack/moonurl@0.2.5",
   "moonbitstack/moonzip@0.3.6",
+  "moonbitstack/moonbase@0.4.3",
+  "moonbitstack/moonmime@0.2.2",
+  "moonbitstack/moondate@0.1.4",
+  "moonbitstack/mooncrypt@0.4.11",
+  "moonbitstack/moonseed@0.1.1",
   "moonbitlang/async@0.22.5",
 }

@@ -1,0 +1,37 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitstack/moonfetch/ws"
+
+import {
+  "moonbitstack/moonfetch",
+}
+
+// Values
+pub async fn connect(@moonfetch.Client, StringView, headers? : Array[(String, String)], protocols? : Array[String], timeout? : Int32) -> WebSocket
+
+// Errors
+pub(all) suberror Refused {
+  Handshake(status~ : Int32, reason~ : String)
+  Protocol(String)
+}
+
+// Types and methods
+pub(all) enum Message {
+  Text(String)
+  Binary(Bytes)
+  Close(status~ : Int32, reason~ : Bytes)
+}
+
+pub struct WebSocket {
+  // private fields
+}
+pub async fn WebSocket::close(Self, status? : Int32, reason? : String) -> Unit
+pub fn WebSocket::is_closed(Self) -> Bool
+pub fn WebSocket::protocol(Self) -> String?
+pub async fn WebSocket::recv(Self) -> Message?
+pub async fn WebSocket::send(Self, Message) -> Unit
+pub async fn WebSocket::send_binary(Self, Bytes) -> Unit
+pub async fn WebSocket::send_text(Self, StringView) -> Unit
+
+// Type aliases
+
+// Traits

@@ -1,0 +1,42 @@
+// A WebSocket client: RFC 6455, over ws and wss. The connection is the client's, so TLS roots,
+// proxies and timeouts are the ones the HTTP side already uses.
+import {
+  "moonbitstack/moonfetch",
+  "moonbitstack/moonnet/tcp",
+  "moonbitstack/moonhttp/ws" @frame,
+  "moonbitstack/moonurl",
+  "moonbitstack/mooncrypt/hash/sha1",
+  "moonbitstack/moonbase/base64",
+  "moonbitstack/moonseed",
+  "moonbitstack/moonseed/system",
+  "moonbitlang/async",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/string",
+}
+
+import {
+  "moonbitstack/moonfetch/ws",
+  "moonbitstack/moonnet/tcp",
+  "moonbitstack/moonhttp/ws" @frame,
+  "moonbitstack/moonurl",
+  "moonbitstack/mooncrypt/hash/sha1",
+  "moonbitstack/moonbase/base64",
+  "moonbitstack/moonseed/system",
+  "moonbitstack/moontls/tls",
+  "moonbitstack/mooncred/x509",
+  "moonbitlang/async",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/string",
+} for "test"
+
+// This package has no files on wasm-gc: the sockets it stands on do not exist there.
+
+warnings = "-29"
+
+options(
+  targets: {
+    "ws.mbt": [ "native", "wasm" ],
+    "message.mbt": [ "native", "wasm" ],
+    "ws_test.mbt": [ "native", "wasm" ],
+  },
+)

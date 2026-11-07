@@ -113,9 +113,9 @@ jobs:
       - name: moon test --target js
         run: moon test --target js
 
-  # HTTP/3 against two servers that are not this repository's: nginx with its QUIC module, and
-  # mooncat serving an ASGI application over QUIC.
-  http3:
+  # HTTP/3 against two servers that are not this repository's. One job each, so that neither
+  # can be mistaken for a run of the other.
+  http3-nginx:
     permissions:
       contents: read
     runs-on: ubuntu-26.04
@@ -129,9 +129,6 @@ jobs:
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
 
-      - name: moon update
-        run: moon update
-
       - name: nginx with http_v3
         run: |
           docker run -d --name nginx-h3 \
@@ -144,24 +141,44 @@ jobs:
             sleep 0.5
           done
 
-      - name: moon test --target native, against nginx
+      - name: moon test --target native
         env:
           MOONFETCH_H3: https://127.0.0.1:8443
-        run: moon test --target native
+        run: |
+          moon update
+          moon test --target native
 
-      # mooncat serves HTTP/1.1, HTTP/2 and HTTP/3 under one certificate on the same port
-      # number; it is a module of its own so that the library's dependencies stay the ones a
-      # reader needs.
+  # mooncat serves HTTP/1.1, HTTP/2 and HTTP/3 under one certificate on the same port number; it
+  # is a module of its own so that the library's dependencies stay the ones a reader needs.
+  http3-mooncat:
+    permissions:
+      contents: read
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: install moonbit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
       - name: mooncat over QUIC
         run: |
-          (cd integration/h3-server && moon run src --target native > /tmp/mooncat.log 2>&1 &)
+          cd integration/h3-server
+          moon update
+          moon build src --target native
+          nohup moon run src --target native > /tmp/mooncat.log 2>&1 &
           for _ in $(seq 1 120); do
             curl -sk --max-time 1 https://127.0.0.1:12000/ > /dev/null && break
             sleep 0.5
           done
           cat /tmp/mooncat.log
 
-      - name: moon test --target native, against mooncat
+      - name: moon test --target native
         env:
           MOONFETCH_H3: https://127.0.0.1:12000
-        run: moon test --target native
+        run: |
+          moon update
+          moon test --target native

@@ -220,7 +220,7 @@ What this client was checked against, and what it came out as.
 |:--|:--|:--|
 | This repository's cases, over HTTP/1.1, HTTP/2 and HTTP/3 | every push, three systems | pass |
 | The same cases on the js host, against a server written on Node's `http` | every push | pass |
-| HTTP/3 against nginx 1.29 (`--with-http_v3_module`) and against mooncat's QUIC listener, real traffic each | every push, in containers | pass |
+| HTTP/3 against nginx 1.29 (`--with-http_v3_module`, in a container) and against mooncat's QUIC listener, real traffic each | every push | pass |
 | 21 public HTTPS origins, 15 of them over HTTP/2 | once, by hand | 19 of 21; the two that fail offer TLS 1.2 only, which moontls does not speak |
 
 ## Beside the official client

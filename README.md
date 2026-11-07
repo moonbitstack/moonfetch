@@ -1,35 +1,33 @@
+<p align="center">
+  <a href="https://mooncakes.io/docs/moonbitstack/moonfetch"><img src="https://img.shields.io/badge/mooncakes-moonfetch-2f6f6a" alt="mooncakes"></a>
+  <a href="https://github.com/moonbitstack/moonfetch"><img src="https://img.shields.io/badge/source-GitHub-2f6f6a" alt="GitHub"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-Apache--2.0-2f6f6a" alt="licence"></a>
+</p>
+
 # moonfetch
 
-An HTTP client for MoonBit, after httpx and reqwest: one call for a request, a
-`Client` that keeps its connections, HTTP/1.1 and HTTP/2 chosen by ALPN, streamed
-bodies, cookies, proxies and a WebSocket client.
+An HTTP and WebSocket client for MoonBit: one call for a request, a `Client` that keeps its
+connections, HTTP/1.1 and HTTP/2 chosen by ALPN, HTTP/3 over QUIC, streamed bodies, cookies,
+proxies — and the same code in a browser, where the host's `fetch` does the work.
 
 ```moonbit
-// One request.
-let r = @moonfetch.get("https://example.com/")
-r.status                 // 200
-r.version                // "HTTP/2"
-r.text()
-
-// A client: connections kept per origin, defaults for every request.
-let api = @moonfetch.Client::new(
-  base_url="https://api.example.com/v1",
-  headers=[("authorization", "Bearer \{token}")],
-)
-defer api.close()
-let user = api.get("/users/7").checked().json()
-let made = api.post("/users", body=Json({ "name": "moon" }))
-let form = api.post("/login", body=Form([("user", "moon"), ("pass", secret)]))
+async fn fetch_a_page() -> Unit raise {
+  let page = @moonfetch.get("https://example.com/")
+  println("\{page.url}: \{page.status}, \{page.body.length()} octets")
+}
 ```
 
-Run `moon run src/examples/tour --target native` to fetch a page over HTTP/2.
+```bash
+moon add moonbitstack/moonfetch
+```
 
 ## What it does
 
 | | |
 |:--|:--|
-| Versions | HTTP/1.1 and HTTP/2 by ALPN over TLS (moontls), HTTP/1.1 in the clear, and HTTP/2 in the clear with `h2c` |
-| Connections | idle HTTP/1.1 connections kept per origin; one HTTP/2 connection per origin carries every request to it, many at once |
+| Versions | HTTP/1.1 and HTTP/2 by ALPN over TLS, HTTP/1.1 in the clear, HTTP/2 in the clear with `h2c`, and HTTP/3 over QUIC when asked for |
+| Hosts | native and wasm over moonnet's connections; the browser and Node over `fetch` |
+| Connections | idle HTTP/1.1 connections kept per origin; one HTTP/2 or HTTP/3 connection per origin carries every request to it, many at once |
 | Bodies | `Body` is one value: `Text`, `Bytes`, `Json`, `Form`, `Multipart`, `Stream`; the content type follows unless a header names one |
 | Streaming | `Client::stream` returns as soon as the head is in; `Stream::next` hands over pieces as they arrive, for server-sent events and downloads |
 | Bounds | a buffered body stops at `Limits::body` while it is being read, not after |
@@ -42,105 +40,188 @@ Run `moon run src/examples/tour --target native` to fetch a page over HTTP/2.
 | Certificates | checked against the Mozilla roots by mooncred; there is no switch that turns checking off: trust your own CA by giving `tls` roots that hold it |
 | Errors | `Refused` for what moonfetch refuses (`Status`, `Redirects`, `Reset`, `Timeout`, `Url`, `Exceeded`, `Proxy`); a socket, TLS or framing error passes through as it is |
 
-## Settings
+## A client
 
-`Client::new` takes the defaults; each request may replace `timeout` and
-`redirects`, and its `headers` replace the client's of the same name.
+```moonbit
+async fn calls(token : String) -> Unit raise {
+  let api = @moonfetch.Client::new(
+    base_url="https://api.example.com/v1",
+    headers=[("authorization", "Bearer \{token}")],
+    timeout=Some(10000),
+  )
+  defer api.close()
+  let user = api.get("/users/7").checked()
+  let made = api.post("/users", body=@moonfetch.Body::Json({ "name": "moon" }))
+  let form = api.post("/login", body=@moonfetch.Body::Form([("user", "moon")]))
+  println("\{user.status} \{made.status} \{form.status}")
+}
+```
 
-| Setting | Default | From |
+`base_url` is the prefix relative URLs are joined to, as httpx joins them: its path is kept, so
+`/users` under `https://a.example/api` is `https://a.example/api/users`. `headers` go on every
+request; a `headers` given for one request replaces the client's of the same name.
+
+## Hosts
+
+The package has two transports and picks one at build time. Nothing in a program changes between
+them; what a host does not have is not offered, and the differences are these:
+
+| | native, wasm | js |
 |:--|:--|:--|
-| `timeout` | 5000 ms | httpx |
-| `redirects` | 10 | reqwest, requests |
-| `idle` | 10 connections per origin | urllib3 |
-| `http2` | on | reqwest, curl |
-| `h2c` | off | — |
-| `compression` | on | httpx, reqwest |
-| `limits.body` | 32 MiB | — (a stream has no bound) |
-| HTTP/2 receive window | 4 MiB per stream, 1 GiB per connection | Go |
+| Transport | moonnet's sockets, TLS and ALPN | the host's `fetch` |
+| `Client::new` | `tls?`, `proxy?`, `jar?`, `http2~`, `h2c~`, `compression~`, `idle~` | `credentials~` |
+| Connections, proxies, cookies | this library's | the host's; `close` has nothing to close |
+| `Response::version` | the version that answered | empty: a browser does not say |
+| `Client::connect` | a connection to upgrade | not there |
+| HTTP/3 | over QUIC by moonnet | whatever the host does itself |
+
+A browser also decides the fields of RFC 9110 §10.1 that a page may not set, follows a
+cross-origin redirect itself, and rules on CORS before moonfetch sees anything.
+
+## HTTP/3
+
+`http3=true` speaks HTTP/3 over QUIC. It is offered for `https` only, since there is no HTTP/3 in
+the clear; an origin that does not answer on the datagram within three seconds is spoken to over
+TCP from then on, and the rest of the program does not see the attempt. A browser host has no such
+switch.
+
+<!-- native: the js host has no http3~ -->
+```moonbit native
+async fn over_quic() -> Unit raise {
+  let client = @moonfetch.Client::new(http3=true, timeout=Some(10000))
+  defer client.close()
+  let response = client.get("https://cloudflare.com/cdn-cgi/trace")
+  println(response.version)
+}
+```
+
+One QUIC connection carries every exchange to an origin, one bidirectional stream each, so
+requests overlap the way they do on HTTP/2. Settings advertise a QPACK table of no entries, which
+keeps a reply to the static table; the connection is moonnet's, which runs moonquic's state
+machine on the datagram socket.
 
 ## Streaming
 
-`stream` sends the request, follows redirects, and returns once the response head
-is in. Each `next` gives a `Data` piece or the `End` with its trailers; the pieces
-are the octets as they came, not a line at a time.
+`stream` sends the request, follows redirects, and returns once the response head is in. Each
+`next` gives a `Data` piece or the `End` with its trailers; the pieces are the octets as they came,
+not a line at a time.
 
 ```moonbit
-let feed = client.stream(Method::Get, "/events")
-while feed.next() is Some(piece) {
-  match piece {
-    Data(bytes) => handle(@sse.decode(@utf8.decode_lossy(bytes[:])))
-    End(_) => break
+async fn feed(client : @moonfetch.Client) -> Unit raise {
+  let stream = client.stream(@method.Method::Get, "/events")
+  for ;; {
+    match stream.next() {
+      Some(@moonfetch.Data(bytes)) => println(bytes.length())
+      Some(@moonfetch.End(trailers)) => {
+        println(trailers.length())
+        break
+      }
+      None => break
+    }
   }
 }
 ```
 
-A stream is not bounded — that is what makes it a stream — so a caller that reads
-one to the end passes its own bound: `feed.bytes(limit=1 << 20)`. A buffered
-`request` uses `Limits::body` and stops as the octets pass it.
+A stream is not bounded — that is what makes it a stream — so a caller that reads one to the end
+passes its own bound: `stream.bytes(limit=1048576)`. A buffered `request` uses `Limits::body` and
+stops as the octets pass it.
 
-Streaming does not ask for compression: a coding would have to be undone on the
-fly. Ask for it yourself if you mean to.
+Streaming does not ask for compression: a coding would have to be undone on the fly. Ask for it
+yourself if you mean to.
 
 ## Request bodies
 
-`Text`, `Bytes`, `Json` and `Form` are whole bodies. `Multipart` is a form with
-files, and `Stream` is a body produced while the request is sent:
+`Text`, `Bytes`, `Json` and `Form` are whole bodies. `Multipart` is a form with files, and
+`Stream` is a body produced while the request is sent:
 
 ```moonbit
-let upload = Part::file("doc", "notes.txt", @fs.read_file("notes.txt"), content_type="text/plain")
-client.post("/upload", body=Multipart([Part::field("owner", "moon"), upload]))
-
-// A body of exactly 4096 octets, produced a kibibyte at a time.
-let source = Source::sized(4096, () => next_kibibyte())
-client.put("/blob", body=Stream(source))
+async fn upload(client : @moonfetch.Client, notes : Bytes) -> Unit raise {
+  let part = @moonfetch.Part::file("doc", "notes.txt", notes, content_type="text/plain")
+  ignore(client.post("/upload", body=@moonfetch.Body::Multipart([
+    @moonfetch.Part::field("owner", "moon"),
+    part,
+  ])))
+}
 ```
 
-A `Source` with a length declares `content-length`; without one the body is
-chunked on HTTP/1.1 and unframed on HTTP/2.
+```moonbit
+async fn put_kibibytes(client : @moonfetch.Client) -> Unit raise {
+  let mut sent = 0
+  let source = @moonfetch.Source::sized(4096, () => {
+    guard sent < 4096 else { return None }
+    sent = sent + 1024
+    Some(Bytes::make(1024, b'x'))
+  })
+  ignore(client.put("/blob", body=@moonfetch.Body::Stream(source)))
+}
+```
+
+A `Source` with a length declares `content-length`; without one the body is chunked on HTTP/1.1
+and unframed on HTTP/2 and HTTP/3.
 
 ## Cookies
 
-```moonbit
-let jar = Jar::new()
-let browser = Client::new(jar~)
-browser.get("https://example.com/login")    // what the server set is kept
-browser.get("https://example.com/account")  // and sent back, where it matches
+```moonbit native
+async fn browser() -> Unit raise {
+  let jar = @moonfetch.Jar::new()
+  let client = @moonfetch.Client::new(jar~)
+  defer client.close()
+  ignore(client.get("https://example.com/login"))
+  ignore(client.get("https://example.com/account"))
+}
 ```
 
-One jar may be shared by several clients and by tasks; it lives as long as the
-process, since persistence is not part of it.
+One jar may be shared by several clients and by tasks; it lives as long as the process, since
+persistence is not part of it.
 
 ## Proxies
 
-```moonbit
-let proxied = Client::new(proxy=Proxy::parse("http://user:pass@proxy.internal:3128"))
-let socks = Client::new(proxy=Proxy::parse("socks5://proxy.internal:1080"))
+```moonbit native
+fn through_a_proxy() -> Unit raise {
+  let http = @moonfetch.Proxy::parse("http://user:pass@proxy.internal:3128")
+  let socks = @moonfetch.Proxy::parse("socks5://proxy.internal:1080")
+  println("\{http.host} \{socks.host}")
+}
 ```
 
-An `http` request through an HTTP proxy goes in absolute form; an `https` one is
-tunnelled with `CONNECT`. SOCKS5 sends the host as a name and lets the proxy
-resolve it.
+An `http` request through an HTTP proxy goes in absolute form; an `https` one is tunnelled with
+`CONNECT`. SOCKS5 sends the host as a name and lets the proxy resolve it.
 
 ## WebSocket
 
 `moonfetch/ws` shares the client's TLS roots, proxy and timeouts:
 
-```moonbit
-let client = Client::new()
-let socket = @ws.connect(client, "wss://example.com/chat", protocols=["chat"])
-socket.send_text("hello")
-while socket.recv() is Some(message) {
-  match message {
-    Text(text) => handle(text)
-    Binary(bytes) => handle(bytes)
-    Close(status~, ..) => break
+```moonbit native
+async fn chat(client : @moonfetch.Client) -> Unit raise {
+  let socket = @ws.connect(client, "wss://example.com/chat", protocols=["chat"])
+  socket.send_text("hello")
+  while socket.recv() is Some(message) {
+    match message {
+      @ws.Text(text) => println(text)
+      @ws.Binary(bytes) => println(bytes.length())
+      @ws.Close(status~, ..) => {
+        println(status)
+        break
+      }
+    }
   }
+  socket.close(status=1000)
 }
-socket.close(status=1000)
 ```
 
-Pings are answered and fragmented messages put back together inside `recv`, so a
-caller sees messages, not frames.
+Pings are answered and fragmented messages put back together inside `recv`, so a caller sees
+messages, not frames.
+
+## Consistency
+
+What this client was checked against, and what it came out as.
+
+| Suite | Where | Result |
+|:--|:--|:--|
+| This repository's cases, over HTTP/1.1, HTTP/2 and HTTP/3 | every push, three systems | pass |
+| The same cases on the js host, against a server written on Node's `http` | every push | pass |
+| HTTP/3 against nginx 1.29 (`--with-http_v3_module`) and against mooncat's QUIC listener, real traffic each | every push, in containers | pass |
+| 21 public HTTPS origins, 15 of them over HTTP/2 | once, by hand | 19 of 21; the two that fail offer TLS 1.2 only, which moontls does not speak |
 
 ## Beside the official client
 
@@ -149,22 +230,15 @@ caller sees messages, not frames.
 | | `async/http` | moonfetch |
 |:--|:--|:--|
 | HTTP/2 | no | by ALPN, many streams on one connection |
+| HTTP/3 | no | over QUIC, with a fallback to TCP |
 | Streaming | whole bodies | `Stream`, a piece at a time |
 | Cookies, proxies | manual | `Jar`, `CONNECT` and SOCKS5 |
 | WebSocket | a separate client | `moonfetch/ws`, on the same client |
 | TLS | the system's (OpenSSL, SChannel) | moontls, the same on every platform |
 | Connection reuse | one connection per `Client` | a pool per origin |
 | Redirects, compression | no | yes |
+| Browser host | `fetch` behind the same interface | `fetch` behind the same interface |
 | Turning certificate checks off | `trust=NoVerification` | not possible; give the roots instead |
-
-The sockets are `moonbitlang/async`'s, so moonfetch runs on the native and wasm
-backends. A browser host and HTTP/3 are not part of this version.
-
-## Install
-
-```bash
-moon add moonbitstack/moonfetch
-```
 
 ## Licence
 

@@ -45,10 +45,123 @@ jobs:
       - name: moon test (all backends)
         run: moon test --target all
 
+      - name: examples run
+        if: runner.os == 'Linux'
+        run: |
+          for dir in src/examples/*/; do
+            if grep -q 'kind: "executable"' "$dir/moon.pkg"; then
+              moon run "$dir" --target native > /dev/null
+            fi
+          done
+
       - name: lint (fmt is clean)
         run: |
           moon fmt && git diff --exit-code
 
+      # The native interface is the one the file records: `Client` is not the same value on the
+      # js host, where the transport is the host's, so `--target all` cannot settle on one.
       - name: interfaces are up to date
         run: |
-          moon info --target all && git diff --exit-code
+          moon info --target native && git diff --exit-code
+
+      - name: the skills are valid
+        if: runner.os == 'Linux'
+        run: |
+          for dir in docs/skills/*/; do
+            [ -f "$dir/SKILL.md" ] || continue
+            pipx run --spec skills-ref agentskills validate "$dir"
+          done
+
+      # A reader pastes the blocks of the README and the skills into a project, so they have
+      # to compile as written, against this commit's source.
+      - name: the code in the docs compiles
+        if: runner.os == 'Linux'
+        run: python3 scripts/check_snippets.py
+
+  # The browser host needs a host: Node, and a server written on its own `http` module, so that
+  # the cases this repository already runs meet somebody else's implementation.
+  node:
+    permissions:
+      contents: read
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: install moonbit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      - name: moon update
+        run: moon update
+
+      - name: a server on Node's http
+        run: |
+          node scripts/js_serve.mjs --port 0 > /tmp/live.env &
+          for _ in $(seq 1 40); do
+            [ -s /tmp/live.env ] && break
+            sleep 0.25
+          done
+          cat /tmp/live.env >> "$GITHUB_ENV"
+
+      - name: moon test --target js
+        run: moon test --target js
+
+  # HTTP/3 against two servers that are not this repository's: nginx with its QUIC module, and
+  # mooncat serving an ASGI application over QUIC.
+  http3:
+    permissions:
+      contents: read
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: install moonbit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      - name: moon update
+        run: moon update
+
+      - name: nginx with http_v3
+        run: |
+          docker run -d --name nginx-h3 \
+            -p 8443:443/tcp -p 8443:443/udp \
+            -v "$PWD/integration/nginx/nginx.conf:/etc/nginx/nginx.conf:ro" \
+            -v "$PWD/integration/h3-server/certs:/certs:ro" \
+            nginx:1.29
+          for _ in $(seq 1 40); do
+            curl -sk --max-time 1 https://127.0.0.1:8443/ > /dev/null && break
+            sleep 0.5
+          done
+
+      - name: moon test --target native, against nginx
+        env:
+          MOONFETCH_H3: https://127.0.0.1:8443
+        run: moon test --target native
+
+      # mooncat serves HTTP/1.1, HTTP/2 and HTTP/3 under one certificate on the same port
+      # number; it is a module of its own so that the library's dependencies stay the ones a
+      # reader needs.
+      - name: mooncat over QUIC
+        run: |
+          (cd integration/h3-server && moon run src --target native > /tmp/mooncat.log 2>&1 &)
+          for _ in $(seq 1 120); do
+            curl -sk --max-time 1 https://127.0.0.1:12000/ > /dev/null && break
+            sleep 0.5
+          done
+          cat /tmp/mooncat.log
+
+      - name: moon test --target native, against mooncat
+        env:
+          MOONFETCH_H3: https://127.0.0.1:12000
+        run: moon test --target native

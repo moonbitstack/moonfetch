@@ -3,7 +3,8 @@
 // HTTP/2, RFC 9113: https://www.rfc-editor.org/rfc/rfc9113
 //
 // Connections are moonnet's, which has sockets on the native and wasm backends only, so the
-// transport files are limited to those two.
+// transport files are limited to those two; the host's `fetch` carries the js backend, and the
+// shapes and rules both hosts share compile everywhere the package does.
 import {
   "moonbitstack/moonnet/tcp",
   "moonbitstack/moontls/tls",
@@ -23,6 +24,7 @@ import {
   "moonbitlang/async",
   "moonbitlang/async/aqueue",
   "moonbitlang/async/cond_var",
+  "moonbitlang/async/js_async",
   "moonbitlang/core/cmp",
   "moonbitlang/core/bench",
   "moonbitlang/core/encoding/utf8",
@@ -47,27 +49,45 @@ import {
   "moonbitstack/moonzip/deflate",
   "moonbitlang/async",
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/env",
 } for "test"
 
 warnings = "-29"
 
 options(
   targets: {
+    "body.mbt": [ "native", "wasm", "js" ],
+    "chunk.mbt": [ "native", "wasm", "js" ],
+    "defaults.mbt": [ "native", "wasm", "js" ],
+    "jar.mbt": [ "native", "wasm", "js" ],
+    "limits.mbt": [ "native", "wasm", "js" ],
+    "origin.mbt": [ "native", "wasm", "js" ],
+    "payload.mbt": [ "native", "wasm", "js" ],
+    "psl.mbt": [ "native", "wasm", "js" ],
+    "psl_data.mbt": [ "native", "wasm", "js" ],
+    "redirect.mbt": [ "native", "wasm", "js" ],
+    "response.mbt": [ "native", "wasm", "js" ],
     "client.mbt": [ "native", "wasm" ],
     "pool.mbt": [ "native", "wasm" ],
     "h1.mbt": [ "native", "wasm" ],
     "h2.mbt": [ "native", "wasm" ],
+    "h3.mbt": [ "native", "wasm" ],
     "stream.mbt": [ "native", "wasm" ],
     "proxy.mbt": [ "native", "wasm" ],
-    "payload.mbt": [ "native", "wasm" ],
+    "wire.mbt": [ "native", "wasm" ],
+    "client.js.mbt": [ "js" ],
+    "stream.js.mbt": [ "js" ],
+    "fetch.js.mbt": [ "js" ],
+    "body_test.mbt": [ "native", "wasm" ],
+    "jar_test.mbt": [ "native", "wasm" ],
     "fetch_test.mbt": [ "native", "wasm" ],
-    "stress_test.mbt": [ "native" ],
     "server_test.mbt": [ "native", "wasm" ],
     "fixtures_test.mbt": [ "native", "wasm" ],
     "stream_test.mbt": [ "native", "wasm" ],
-    "body_test.mbt": [ "native", "wasm" ],
-    "jar_test.mbt": [ "native", "wasm" ],
     "proxy_test.mbt": [ "native", "wasm" ],
+    "stress_test.mbt": [ "native" ],
     "multiplex_test.mbt": [ "native" ],
+    "h3_test.mbt": [ "native" ],
+    "js_test.mbt": [ "js" ],
   },
 )

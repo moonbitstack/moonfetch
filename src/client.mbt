@@ -2,14 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 ///|
-/// How long a request may take when nothing else is said, in milliseconds: httpx's 5 seconds.
-pub let timeout : Int32 = 5000
-
-///|
-/// How many redirects are followed when nothing else is said: reqwest's and requests' 10.
-pub let redirects : Int32 = 10
-
-///|
 /// How many idle HTTP/1.1 connections are kept per origin: urllib3's 10.
 pub let idle : Int32 = 10
 
@@ -106,80 +98,6 @@ pub fn Client::new(
 /// Close every connection the client keeps.
 pub fn Client::close(self : Client) -> Unit {
   self.pool.close()
-}
-
-///|
-fn parse(text : StringView) -> @moonurl.Url raise Refused {
-  @moonurl.Url::decode(text) catch {
-    _ => raise Url(text.to_owned())
-  }
-}
-
-///|
-fn check(url : @moonurl.Url, text : StringView) -> Unit raise Refused {
-  guard url.scheme is Some("http" | "https") else {
-    raise Url("\{text}: not http or https")
-  }
-  guard url.host is Some(host) && host != "" else {
-    raise Url("\{text}: no host")
-  }
-}
-
-///|
-/// The absolute URL a request goes to: joined to the base, with `query` added to any query
-/// the URL already has.
-fn Client::locate(
-  self : Client,
-  text : StringView,
-  query : Array[(String, String)]?,
-) -> @moonurl.Url raise Refused {
-  let given = parse(text)
-  let url = match self.base {
-    Some(base) if !given.is_absolute() => {
-      let prefix = if base.path.has_suffix("/") {
-        base.path
-      } else {
-        base.path + "/"
-      }
-      let rest = match given.path.strip_prefix("/") {
-        Some(rest) => rest.to_owned()
-        None => given.path
-      }
-      { ..base, path: prefix + rest, query: given.query, fragment: None, }
-    }
-    _ => given
-  }
-  check(url, text)
-  guard query is Some(pairs) && pairs.length() > 0 else { return url }
-  let extra = @moonurl.Query::new(pairs~).encode()
-  let joined = match url.query {
-    Some(q) if q != "" => q + "&" + extra
-    _ => extra
-  }
-  { ..url, query: Some(joined), }
-}
-
-///|
-fn has(fields : Array[(String, String)], name : String) -> Bool {
-  fields.iter().any(f => f.0.to_lower() == name)
-}
-
-///|
-fn without(
-  fields : Array[(String, String)],
-  names : Array[String],
-) -> Array[(String, String)] {
-  fields.filter(f => !names.contains(f.0.to_lower()))
-}
-
-///|
-/// The client's headers with the request's laid over them: a name given for the request
-/// replaces the client's value for that name.
-fn merge(
-  base : Array[(String, String)],
-  extra : Array[(String, String)],
-) -> Array[(String, String)] {
-  without(base, extra.map(f => f.0.to_lower())) + extra
 }
 
 ///|
@@ -428,10 +346,7 @@ fn decoded(
 }
 
 ///|
-/// Send, then follow redirects (RFC 9110 §15.4). A 303, and a 301 or 302 to a POST, turn into
-/// a GET without a body, as browsers and every client in use do. Credentials stay with their
-/// origin: `authorization` and `cookie` are dropped when a redirect leaves it, and the jar
-/// supplies the cookies the new origin has.
+/// Send, then follow what `next_hop` makes of the answer.
 async fn Client::follow(
   self : Client,
   hop : Int32,
@@ -442,33 +357,21 @@ async fn Client::follow(
   body : Body,
 ) -> Response {
   let response = self.send(verb, url, fields, body)
-  guard limit > 0 &&
-    response.status is (301 | 302 | 303 | 307 | 308) &&
-    response.header("location") is Some(location) else {
-    return response
+  match
+    next_hop(
+      hop,
+      limit,
+      response.status,
+      response.header("location"),
+      verb,
+      url,
+      fields,
+      body,
+    ) {
+    Stop => response
+    Again(verb~, url~, fields~, body~) =>
+      self.follow(hop + 1, limit, verb, url, fields, body)
   }
-  if hop == limit {
-    raise Redirects(limit~)
-  }
-  let next = url.resolve(parse(location))
-  check(next, location)
-  let to_get = (response.status == 303 && !(verb is Head)) ||
-    (response.status is (301 | 302) && verb is Post)
-  let (verb, body, fields) = if to_get {
-    (
-      @method.Method::Get,
-      Body::Empty,
-      without(fields, ["content-type", "content-length"]),
-    )
-  } else {
-    (verb, body, fields)
-  }
-  let fields = if Origin::of(next).key() == Origin::of(url).key() {
-    fields
-  } else {
-    without(fields, ["authorization", "cookie"])
-  }
-  self.follow(hop + 1, limit, verb, next, fields, body)
 }
 
 ///|
@@ -486,7 +389,7 @@ pub async fn Client::request(
   timeout? : Int32,
   redirects? : Int32,
 ) -> Response {
-  let target = self.locate(url, query)
+  let target = located(self.base, url, query)
   let fields = merge(self.headers, headers.unwrap_or([]))
   let limit = redirects.unwrap_or(self.redirects)
   let run = () => {

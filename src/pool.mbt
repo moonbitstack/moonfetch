@@ -2,39 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 ///|
-/// Where a request goes: scheme, host and port, the unit connections are kept by (RFC 6454).
-priv struct Origin {
-  scheme : String
-  host : String
-  port : Int32
-}
-
-///|
-fn Origin::of(url : @moonurl.Url) -> Origin {
-  let scheme = url.scheme.unwrap_or("http")
-  let port = match url.port {
-    Some(p) => p
-    None => if scheme == "https" { 443 } else { 80 }
-  }
-  { scheme, host: url.host.unwrap_or(""), port, }
-}
-
-///|
-fn Origin::key(self : Origin) -> String {
-  "\{self.scheme}://\{self.host}:\{self.port}"
-}
-
-///|
-/// The host and port as a request names them: the port left out when it is the scheme's own.
-fn Origin::authority(self : Origin) -> String {
-  let host = if self.host.contains(":") { "[\{self.host}]" } else { self.host }
-  match (self.scheme, self.port) {
-    ("http", 80) | ("https", 443) => host
-    _ => "\{host}:\{self.port}"
-  }
-}
-
-///|
 /// A connection to an origin, in whichever version ALPN settled on.
 priv enum Link {
   H1(@tcp.Conn, reused~ : Bool)
@@ -126,8 +93,3 @@ fn Pool::close(self : Pool) -> Unit {
   self.idle.clear()
   self.h2.clear()
 }
-
-///|
-/// How much is read from a connection at once: a TLS record's worth. The async default is a
-/// kibibyte.
-let chunk : Int32 = 16384

@@ -2,14 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 ///|
-/// A piece of a response body as it arrives.
-pub(all) enum Chunk {
-  Data(Bytes)
-  /// The body is over; the trailers are those the server sent, empty when it sent none.
-  End(Array[(String, String)])
-}
-
-///|
 /// Where the body of a `Stream` comes from.
 priv enum StreamBody {
   Hay1(@tcp.Conn, H1, String, Pool)
@@ -200,7 +192,7 @@ pub async fn Client::stream(
   timeout? : Int32,
   redirects? : Int32,
 ) -> Stream {
-  let mut target = self.locate(url, query)
+  let mut target = located(self.base, url, query)
   let mut fields = merge(self.headers, headers.unwrap_or([]))
   let mut payload = body.unwrap_or(Empty)
   let mut verb = verb

@@ -23,16 +23,6 @@ let stream_window : Int32 = 4 << 20
 let connection_window : Int32 = 1 << 30
 
 ///|
-/// What one stream has to hand its reader.
-priv enum Piece {
-  Head(Int32, Array[(String, String)])
-  Body(Bytes)
-  End(Array[(String, String)])
-  /// The stream was reset, or the connection went away under it; `None` means nothing was said.
-  Fail(Int32?)
-}
-
-///|
 /// One request in flight on an HTTP/2 connection.
 priv struct H2Stream {
   queue : @aqueue.Queue[Piece]

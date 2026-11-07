@@ -2,36 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 ///|
-/// A request as it goes on the wire, whichever version carries it.
-priv struct Outgoing {
-  verb : @method.Method
-  scheme : String
-  authority : String
-  target : String
-  fields : Array[@header.Header]
-  payload : Payload
-}
-
-///|
-/// A response as it comes off the wire, and whether its connection may carry another.
-priv struct Reply {
-  status : Int32
-  reason : String
-  version : String
-  headers : Array[(String, String)]
-  body : Bytes
-  reusable : Bool
-}
-
-///|
-fn ascii(fields : Array[@header.Header]) -> Array[(String, String)] {
-  fields.map(f => {
-    let (name, value) = f.ascii()
-    (name.to_lower(), value)
-  })
-}
-
-///|
 /// A response body being read from an HTTP/1.1 connection, a piece at a time.
 priv struct H1 {
   conn : @tcp.Conn

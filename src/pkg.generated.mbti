@@ -80,7 +80,7 @@ pub async fn Client::connect(Self, StringView) -> @tcp.Conn
 pub async fn Client::delete(Self, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
 pub async fn Client::get(Self, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
 pub async fn Client::head(Self, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
-pub fn Client::new(base_url? : String, headers? : Array[(String, String)], timeout? : Int32?, redirects? : Int32, http2? : Bool, compression? : Bool, idle? : Int32, h2c? : Bool, limits? : Limits, jar? : Jar, proxy? : Proxy, tls? : @tls.Client) -> Self raise Refused
+pub fn Client::new(base_url? : String, headers? : Array[(String, String)], timeout? : Int32?, redirects? : Int32, http2? : Bool, compression? : Bool, http3? : Bool, idle? : Int32, h2c? : Bool, limits? : Limits, jar? : Jar, proxy? : Proxy, tls? : @tls.Client) -> Self raise Refused
 pub async fn Client::options(Self, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
 pub async fn Client::patch(Self, StringView, body? : Body, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
 pub async fn Client::post(Self, StringView, body? : Body, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response

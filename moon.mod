@@ -10,6 +10,17 @@ license = "Apache-2.0"
 
 keywords = [
   "http",
+  "http3",
+  "h3",
+  "quic",
+  "rfc9114",
+  "rfc9000",
+  "browser",
+  "browser-fetch",
+  "node",
+  "javascript",
+  "wasm",
+  "rfc6265bis",
   "http-client",
   "client",
   "fetch",
@@ -49,12 +60,16 @@ keywords = [
   "rfc9110",
   "rfc9112",
   "rfc9113",
+  "rfc7838",
+  "alt-svc",
   "moonbit",
 ]
 
-description = "An HTTP and WebSocket client for MoonBit."
+description = "An HTTP and WebSocket client for MoonBit, on native, wasm and the browser."
 
 source = "src"
+
+supported_targets = [ "native", "wasm", "js" ]
 
 import {
   "moonbitstack/moonnet@0.1.11",

@@ -7,12 +7,15 @@
 // shapes and rules both hosts share compile everywhere the package does.
 import {
   "moonbitstack/moonnet/tcp",
+  "moonbitstack/moonnet/udp",
   "moonbitstack/moontls/tls",
   "moonbitstack/mooncred/x509",
   "moonbitstack/mooncred/roots",
   "moonbitstack/moonhttp/http1",
   "moonbitstack/moonhttp/http2",
   "moonbitstack/moonhttp/header",
+  "moonbitstack/moonhttp/http3",
+  "moonbitstack/moonhttp/qpack",
   "moonbitstack/moonhttp/method",
   "moonbitstack/moonhttp/cookie",
   "moonbitstack/moonurl",
@@ -36,6 +39,7 @@ import {
   "moonbitstack/moonfetch",
   "moonbitstack/moonmime",
   "moonbitstack/moonnet/tcp",
+  "moonbitstack/moonnet/udp",
   "moonbitstack/moonurl",
   "moonbitstack/moontls/tls",
   "moonbitstack/moontls/alert",

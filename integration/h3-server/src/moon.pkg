@@ -1,0 +1,16 @@
+// The peer the live cases of moonfetch talk to: an HTTP/1.1, HTTP/2 and HTTP/3 server on one
+// port number, run in CI before `moon test` so that the client meets a real server.
+pkgtype(kind: "executable")
+
+import {
+  "moonbitstack/mooncat",
+  "moonbitstack/mooncat/quic",
+  "moonbitstack/mooncat/serve",
+  "moonbitstack/moonasgi",
+  "moonbitlang/async",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/env",
+  "moonbitlang/core/string",
+}
+
+warnings = "-29"

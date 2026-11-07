@@ -6,6 +6,7 @@
 priv enum StreamBody {
   Hay1(@tcp.Conn, H1, String, Pool)
   Hay2(H2, Int32)
+  Hay3(H3, Int32)
   Finished
 }
 
@@ -133,6 +134,21 @@ async fn Stream::advance(self : Stream) -> Chunk? {
           }
         }
       }
+    Hay3(h3, at) =>
+      for ;; {
+        match h3.wait(at) {
+          Body(piece) => return Some(Data(piece))
+          End(trailers) => {
+            self.body_ = Finished
+            return Some(End(trailers))
+          }
+          Head(_, _) => ()
+          Fail(code) => {
+            self.body_ = Finished
+            failed(code)
+          }
+        }
+      }
   }
 }
 
@@ -172,6 +188,7 @@ pub fn Stream::close(self : Stream) -> Unit {
     Finished => ()
     Hay1(conn, _, _, _) => conn.close()
     Hay2(h2, id) => h2.abandon(id)
+    Hay3(h3, at) => h3.abandon(at)
   }
   self.body_ = Finished
 }
@@ -265,6 +282,27 @@ async fn Client::begin(
   let origin = Origin::of(url)
   let key = origin.key()
   let head = match self.link(origin) {
+    H3(h3, reused=_) => {
+      errdefer self.pool.forget_h3(key, h3)
+      let at = h3.open(out)
+      h3.send_body(at, out.payload)
+      h3.finish(at)
+      let mut status = 0
+      let mut answer = []
+      for ;; {
+        match h3.wait(at) {
+          Head(code, headers) => {
+            status = code
+            answer = headers
+            break
+          }
+          Body(_) => ()
+          End(_) => raise @http2.Incomplete
+          Fail(code) => failed(code)
+        }
+      }
+      (status, "", "HTTP/3", answer, StreamBody::Hay3(h3, at))
+    }
     H2(h2, reused=_) => {
       errdefer self.pool.forget(key, h2)
       let id = h2.open(out)

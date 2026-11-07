@@ -30,6 +30,7 @@ struct Client {
   timeout : Int32?
   redirects : Int32
   compression : Bool
+  http3 : Bool
   h2c : Bool
   limits : Limits
   tls : @tls.Client
@@ -48,6 +49,8 @@ struct Client {
 /// `h2c` speaks HTTP/2 with prior knowledge over `http`, where there is no ALPN to ask.
 /// `compression` asks for gzip or deflate and decodes what comes back, as httpx and reqwest do;
 /// a request that names its own `accept-encoding` gets the body as sent.
+/// `http3` speaks HTTP/3 over QUIC where it can, and falls back to TCP for an origin that does
+/// not answer on the datagram, as a browser's Alt-Svc does without the cache.
 /// `limits` bounds what a buffered response may hold. `jar` keeps cookies across requests.
 /// `proxy` sends the connection through an HTTP or SOCKS5 proxy.
 /// `tls` judges servers' certificates, the Mozilla roots when not given; its ALPN list is set
@@ -59,6 +62,7 @@ pub fn Client::new(
   redirects~ : Int32 = redirects,
   http2~ : Bool = true,
   compression~ : Bool = true,
+  http3~ : Bool = false,
   idle~ : Int32 = idle,
   h2c~ : Bool = false,
   limits~ : Limits = limits,
@@ -85,6 +89,7 @@ pub fn Client::new(
     timeout,
     redirects,
     compression,
+    http3,
     h2c,
     limits,
     tls,
@@ -137,6 +142,31 @@ async fn Client::open(self : Client, origin : Origin) -> @tcp.Conn {
 }
 
 ///|
+/// Whether a request to this origin should try QUIC first: HTTPS only, since an HTTP/3 connection
+/// is always over TLS, and only while the origin has not turned the attempt down.
+fn Client::wants_h3(self : Client, origin : Origin) -> Bool {
+  self.http3 && origin.scheme == "https" && !self.pool.tried_h3(origin.key())
+}
+
+///|
+/// An HTTP/3 connection to the origin, or `None` when the handshake did not finish in time or
+/// was refused: the caller then takes the TCP path.
+async fn Client::quic(self : Client, origin : Origin) -> H3? {
+  let tls : @tls.Client = { ..self.tls, alpn: ["h3"], }
+  let attempt : Result[H3?, Error] = Ok(
+    @async.with_timeout_opt(quic_timeout, () => {
+      H3::connect(origin.host, origin.port, tls)
+    }),
+  ) catch {
+    _ => Ok(None)
+  }
+  match attempt {
+    Ok(Some(h3)) => Some(h3)
+    _ => None
+  }
+}
+
+///|
 /// Whether a fresh connection to this origin should speak HTTP/2.
 fn Client::wants_h2(self : Client, origin : Origin, conn : @tcp.Conn) -> Bool {
   if origin.scheme == "http" {
@@ -149,6 +179,12 @@ fn Client::wants_h2(self : Client, origin : Origin, conn : @tcp.Conn) -> Bool {
 ///|
 async fn Client::link(self : Client, origin : Origin) -> Link {
   let key = origin.key()
+  if self.wants_h3(origin) {
+    match self.pool.live_h3(key) {
+      Some(h3) => return H3(h3, reused=true)
+      None => ()
+    }
+  }
   match self.pool.live(key) {
     Some(h2) => return H2(h2, reused=true)
     None => ()
@@ -159,12 +195,27 @@ async fn Client::link(self : Client, origin : Origin) -> Link {
   // A dial is shared: whoever gets here first connects, the rest take what it opened.
   self.pool.dial.acquire()
   defer self.pool.dial.release()
+  if self.wants_h3(origin) {
+    match self.pool.live_h3(key) {
+      Some(h3) => return H3(h3, reused=true)
+      None => ()
+    }
+  }
   match self.pool.live(key) {
     Some(h2) => return H2(h2, reused=true)
     None => ()
   }
   if self.pool.take(key) is Some(conn) {
     return H1(conn, reused=true)
+  }
+  if self.wants_h3(origin) {
+    match self.quic(origin) {
+      Some(h3) => {
+        self.pool.keep_h3(key, h3)
+        return H3(h3, reused=false)
+      }
+      None => self.pool.refuse_h3(key)
+    }
   }
   let conn = self.open(origin)
   if self.wants_h2(origin, conn) {
@@ -197,6 +248,14 @@ async fn Client::exchange(
       h2.exchange(out, self.limits.body) catch {
         e => {
           self.pool.forget(key, h2)
+          guard retryable(reused, out, e) else { raise e }
+          return self.exchange(origin, out)
+        }
+      }
+    H3(h3, reused~) =>
+      h3.exchange(out, self.limits.body) catch {
+        e => {
+          self.pool.forget_h3(key, h3)
           guard retryable(reused, out, e) else { raise e }
           return self.exchange(origin, out)
         }

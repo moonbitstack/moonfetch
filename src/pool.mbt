@@ -6,6 +6,7 @@
 priv enum Link {
   H1(@tcp.Conn, reused~ : Bool)
   H2(H2, reused~ : Bool)
+  H3(H3, reused~ : Bool)
 }
 
 ///|
@@ -14,6 +15,9 @@ priv enum Link {
 priv struct Pool {
   idle : Map[String, Array[@tcp.Conn]]
   h2 : Map[String, H2]
+  h3 : Map[String, H3]
+  /// Origins whose QUIC handshake failed: they are spoken to over TCP from then on.
+  no_h3 : Set[String]
   keep : Int32
   /// One dial at a time: without it a hundred requests that start together open a hundred
   /// connections and throw all but one away.
@@ -22,7 +26,14 @@ priv struct Pool {
 
 ///|
 fn Pool::new(keep : Int32) -> Pool {
-  { idle: Map([]), h2: Map([]), keep, dial: @async.Mutex(), }
+  {
+    idle: Map([]),
+    h2: Map([]),
+    h3: Map([]),
+    no_h3: Set([]),
+    keep,
+    dial: @async.Mutex(),
+  }
 }
 
 ///|
@@ -41,6 +52,48 @@ fn Pool::live(self : Pool, key : String) -> H2? {
 ///|
 fn Pool::keep_h2(self : Pool, key : String, h2 : H2) -> Unit {
   self.h2[key] = h2
+}
+
+///|
+/// The HTTP/3 connection for an origin, when it can still take work.
+fn Pool::live_h3(self : Pool, key : String) -> H3? {
+  match self.h3.get(key) {
+    Some(h3) if h3.live() => Some(h3)
+    Some(h3) => {
+      h3.close()
+      self.h3.remove(key)
+      None
+    }
+    None => None
+  }
+}
+
+///|
+fn Pool::keep_h3(self : Pool, key : String, h3 : H3) -> Unit {
+  self.h3[key] = h3
+}
+
+///|
+/// Drop an HTTP/3 connection that has failed or been told to go away, and stop asking this
+/// origin for another.
+fn Pool::forget_h3(self : Pool, key : String, h3 : H3) -> Unit {
+  h3.close()
+  self.no_h3.add(key)
+  if self.h3.get(key) is Some(kept) && physical_equal(kept, h3) {
+    self.h3.remove(key)
+  }
+}
+
+///|
+/// Note that an origin does not answer over QUIC, so that every later request to it goes over
+/// TCP straight away.
+fn Pool::refuse_h3(self : Pool, key : String) -> Unit {
+  self.no_h3.add(key)
+}
+
+///|
+fn Pool::tried_h3(self : Pool, key : String) -> Bool {
+  self.no_h3.contains(key)
 }
 
 ///|
@@ -90,6 +143,10 @@ fn Pool::close(self : Pool) -> Unit {
   for _, h2 in self.h2 {
     h2.conn.close()
   }
+  for _, h3 in self.h3 {
+    h3.close()
+  }
   self.idle.clear()
   self.h2.clear()
+  self.h3.clear()
 }

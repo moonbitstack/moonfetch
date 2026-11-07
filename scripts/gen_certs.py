@@ -14,6 +14,9 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 
 OUT = pathlib.Path(__file__).resolve().parent.parent / "src" / "fixtures_test.mbt"
+# The same leaf and key as files, for the servers the live tests use: the certificate is under
+# the root the tests trust, so neither of them needs a switch that turns checking off.
+SERVER = pathlib.Path(__file__).resolve().parent.parent / "integration" / "h3-server" / "certs"
 START = dt.datetime(2020, 1, 1, tzinfo=dt.timezone.utc)
 END = dt.datetime(2040, 1, 1, tzinfo=dt.timezone.utc)
 
@@ -72,6 +75,10 @@ def main():
         out.append("")
     OUT.write_text("\n".join(out), encoding="utf-8", newline="\n")
     print(f"wrote {len(values)} values to {OUT}")
+    SERVER.mkdir(parents=True, exist_ok=True)
+    (SERVER / "cert.pem").write_text(values["cert"] + "\n", encoding="utf-8", newline="\n")
+    (SERVER / "key.pem").write_text(values["key"] + "\n", encoding="utf-8", newline="\n")
+    print(f"wrote the leaf and its key to {SERVER}")
 
 
 if __name__ == "__main__":

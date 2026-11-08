@@ -1209,3 +1209,12 @@ footer .meta .tick {
     transition: none;
   }
 }
+
+/* A narrower sheet has the same words to clear, so the hole in the middle of the web grows. This
+   sits last because it overrides the rule that draws the web. */
+@media (width <= 860px) {
+  .hero .web {
+    mask-image: radial-gradient(ellipse 66% 40% at 50% 50%, transparent 0 80%, #000 100%);
+    -webkit-mask-image: radial-gradient(ellipse 66% 40% at 50% 50%, transparent 0 80%, #000 100%);
+  }
+}

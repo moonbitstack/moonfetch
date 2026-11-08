@@ -57,8 +57,10 @@
     if (!page || !bead) return;
     const top = page.getBoundingClientRect().top;
     // The bead sits where the reader's eye is, in the page's own coordinates, so it stays on the
-    // thread whatever the width.
-    bead.style.top = `${innerHeight * 0.42 - top}px`;
+    // thread whatever the width. Above the thread there is nothing for it to sit on.
+    const at = innerHeight * 0.42 - top;
+    bead.style.top = `${Math.max(0, at)}px`;
+    bead.style.opacity = at < 0 ? "0" : "1";
   };
   addEventListener(
     "scroll",

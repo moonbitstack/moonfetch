@@ -13,8 +13,6 @@ import {
 warnings = "-29"
 
 options(
-  targets: {
-    "main.mbt": [ "js" ],
-  },
+  targets: { "main.mbt": [ "js" ] },
   link: { "js": { "exports": [ "preview", "send", "costs" ], "format": "esm" } },
 )

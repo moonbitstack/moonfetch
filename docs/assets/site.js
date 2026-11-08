@@ -6,36 +6,66 @@
 
   /* ------------------------------------------------------------ theme */
 
+  // `theme.js` has already put a stored choice on the document, before the sheet was painted.
+  // What is left is the switch, its label, and keeping a page that is already open in step with
+  // a choice made on another one.
   const KEY = "moonfetch-theme";
-  const saved = (() => {
-    try {
-      return localStorage.getItem(KEY);
-    } catch {
-      return null;
-    }
-  })();
-  if (saved === "light" || saved === "dark") root.dataset.theme = saved;
-
   const button = document.querySelector("[data-theme-toggle]");
-  const current = () =>
-    root.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const system = () => (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const current = () => root.dataset.theme || system();
   const label = () => (current() === "dark" ? "Switch to the light sheet" : "Switch to the dark sheet");
 
-  if (button) {
-    button.setAttribute("aria-label", label());
-    button.title = label();
-    button.addEventListener("click", () => {
-      const next = current() === "dark" ? "light" : "dark";
-      root.dataset.theme = next;
-      try {
-        localStorage.setItem(KEY, next);
-      } catch {
-        /* a page that cannot remember still switches */
-      }
+  const show = (value) => {
+    if (value === "light" || value === "dark") {
+      root.dataset.theme = value;
+      root.style.colorScheme = value;
+    } else {
+      // Nothing stored: the system decides again, and the stylesheet's media query hears it.
+      delete root.dataset.theme;
+      root.style.removeProperty("color-scheme");
+    }
+    if (button) {
       button.setAttribute("aria-label", label());
       button.title = label();
-    });
+    }
+  };
+
+  // If the head script did not run — blocked, failed, cached away — the choice is still here.
+  if (!root.dataset.theme) {
+    try {
+      const stored = localStorage.getItem(KEY);
+      if (stored === "light" || stored === "dark") {
+        root.dataset.theme = stored;
+        root.style.colorScheme = stored;
+      }
+    } catch {
+      // Nothing to read; the system decides.
+    }
   }
+
+  show(root.dataset.theme);
+
+  button?.addEventListener("click", () => {
+    const next = current() === "dark" ? "light" : "dark";
+    // The document turns first, so the page still switches when storage is refused.
+    show(next);
+    try {
+      localStorage.setItem(KEY, next);
+    } catch {
+      // A page that cannot remember still switches.
+    }
+  });
+
+  // Another page of the site — a second tab, or one opened from a link — changes the theme; this
+  // one follows without a reload.
+  addEventListener("storage", (event) => {
+    if (event.key === KEY) show(event.newValue);
+  });
+
+  // With no stored choice the label has to follow the system, which may change under the page.
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    show(root.dataset.theme);
+  });
 
   /* ------------------------------------------------------------ the scroll bar at the top */
 

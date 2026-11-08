@@ -24,7 +24,7 @@
         <a href="./index.html" class="on">Home</a>
         <a href="./guide.html">Guide</a>
         <a href="./api.html">API</a>
-        <a href="./showcase.html">Showcase</a>
+        <a href="./showcase.html">ShowCase</a>
         <a
           class="icon"
           href="https://github.com/moonbitstack/moonfetch"
@@ -125,7 +125,7 @@
           Three lines of MoonBit on the left; on the right, the octets they become — written by this
           library, in this page, just now.
         </p>
-        <div class="lab">
+        <div class="proof">
           <div>
             <pre class="code" data-lang="mbt"><code>let client = @moonfetch.Client::new(timeout=Some(5000))
 let page = client.get("https://example.com/a?b=1")
@@ -135,17 +135,15 @@ println(page.status)</code></pre>
               user agent, the fields it accepts.
             </p>
           </div>
-          <div class="panes">
-            <div class="pane">
-              <h3>HTTP/1.1 <em data-bytes-size></em></h3>
-              <div class="bytes scroll"><pre data-bytes>the engine loads with the page…</pre></div>
-            </div>
-            <p class="note">
-              The rest — frames, a live answer, a game about head-of-line blocking — is on the
-              <a href="./showcase.html">showcase</a>.
-            </p>
+          <div class="pane h1">
+            <div class="pane-bar"><b>What goes out</b><em data-bytes-size></em></div>
+            <div class="scroll"><pre class="bytes" data-bytes>the engine loads with the page…</pre></div>
           </div>
         </div>
+        <p class="note" style="margin-top: 14px">
+          The rest — frames, a live answer, a game about head-of-line blocking — is on the
+          <a href="./showcase.html">ShowCase</a>.
+        </p>
       </section>
 
       <section class="stop" id="numbers">
@@ -154,7 +152,7 @@ println(page.status)</code></pre>
         <div class="rows">
           <div class="row">
             <span class="n">a</span><span class="k">Version</span>
-            <span class="v"><code data-fill="version">0.1.6</code>, published on mooncakes</span>
+            <span class="v"><code data-fill="version">0.1.6</code>, published on MoonCakes</span>
           </div>
           <div class="row">
             <span class="n">b</span><span class="k">Public items</span>
@@ -177,10 +175,21 @@ println(page.status)</code></pre>
         <div class="acts" style="justify-content: flex-start">
           <a class="btn" href="./guide.html">Guide</a>
           <a class="btn" href="./api.html">API reference</a>
-          <a class="btn" href="./showcase.html">Showcase</a>
-          <a class="btn" href="https://mooncakes.io/docs/moonbitstack/moonfetch">mooncakes</a>
+          <a class="btn" href="./showcase.html">ShowCase</a>
+          <a class="btn" href="https://mooncakes.io/docs/moonbitstack/moonfetch">MoonCakes</a>
         </div>
       </section>
+      <div class="endmark" aria-hidden="true">
+        <svg viewBox="0 0 128 24">
+          <path d="M0 12h44M84 12h44" />
+          <g class="knot">
+            <circle cx="64" cy="12" r="10" />
+            <circle cx="64" cy="12" r="5.4" />
+            <path d="M64 2v20M54 12h20M57 5l14 14M71 5L57 19" />
+          </g>
+          <circle cx="64" cy="12" r="1.8" class="core" />
+        </svg>
+      </div>
     </main>
 
     <footer>
@@ -198,14 +207,14 @@ println(page.status)</code></pre>
             <ul>
               <li><a href="./guide.html">Guide</a></li>
               <li><a href="./api.html">API reference</a></li>
-              <li><a href="./showcase.html">Showcase</a></li>
+              <li><a href="./showcase.html">ShowCase</a></li>
             </ul>
           </div>
           <div>
             <h4>Elsewhere</h4>
             <ul>
               <li><a href="https://github.com/moonbitstack/moonfetch">GitHub</a></li>
-              <li><a href="https://mooncakes.io/docs/moonbitstack/moonfetch">mooncakes</a></li>
+              <li><a href="https://mooncakes.io/docs/moonbitstack/moonfetch">MoonCakes</a></li>
               <li>
                 <a href="https://github.com/moonbitstack/moonfetch/blob/master/LICENSE"
                   >Apache-2.0</a
@@ -233,6 +242,7 @@ println(page.status)</code></pre>
     </footer>
 
     <script src="./assets/site.js"></script>
+    <script src="./assets/code.js"></script>
     <script type="module">
       const block = document.querySelector("[data-bytes]");
       const size = document.querySelector("[data-bytes-size]");

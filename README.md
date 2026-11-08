@@ -2,7 +2,8 @@
   <a href="https://moonbitstack.github.io/moonfetch/"><img src="https://img.shields.io/badge/site-moonfetch-a83a2c" alt="site"></a>
   <a href="https://moonbitstack.github.io/moonfetch/guide.html"><img src="https://img.shields.io/badge/guide-read-a83a2c" alt="guide"></a>
   <a href="https://moonbitstack.github.io/moonfetch/api.html"><img src="https://img.shields.io/badge/API-reference-a83a2c" alt="API reference"></a>
-  <a href="https://mooncakes.io/docs/moonbitstack/moonfetch"><img src="https://img.shields.io/badge/mooncakes-moonfetch-a83a2c" alt="mooncakes"></a>
+  <a href="https://moonbitstack.github.io/moonfetch/showcase.html"><img src="https://img.shields.io/badge/ShowCase-two-demos-a83a2c" alt="ShowCase"></a>
+  <a href="https://mooncakes.io/docs/moonbitstack/moonfetch"><img src="https://img.shields.io/badge/MoonCakes-moonfetch-a83a2c" alt="MoonCakes"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-Apache--2.0-8a8478" alt="licence"></a>
 </p>
 

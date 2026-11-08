@@ -130,6 +130,8 @@
     state.lossIn -= dt;
     if (state.lossIn <= 0) {
       state.lossIn = LOSS_EVERY;
+      // The counter says what happened to the traffic: a packet lost is a request lost.
+      state.dropped += 1;
       const lanes = transports[state.transport].lanes;
       const lane = Math.floor(Math.random() * lanes);
       if (transports[state.transport].shareLoss) {
@@ -201,6 +203,13 @@
     ctx.fillText("client", CLIENT_X, LANES[0] - 40);
     ctx.fillText("server", SERVER_X, LANES[0] - 40);
 
+    // What each lane carries, so the shape of the choice is legible before the first run.
+    const transport = transports[state.transport];
+    ctx.textAlign = "left";
+    for (let i = 0; i < transport.lanes; i++) {
+      ctx.fillText(transport.lanes === 1 ? "one connection" : `stream ${i + 1}`, CLIENT_X + 10, LANES[i] - 11);
+    }
+
     // Requests waiting at the client.
     for (let i = 0; i < state.pending.length; i++) {
       ctx.beginPath();
@@ -254,15 +263,28 @@
       );
     }
 
+    ctx.textAlign = "center";
+    if (!state.running && !state.over) {
+      ctx.fillStyle = palette.dim;
+      ctx.font = `12px ${palette.mono}`;
+      ctx.fillText(
+        "press Run — ten requests, and a packet lost every few seconds",
+        WIDTH / 2,
+        LANES[2] + 36,
+      );
+    }
+
     if (state.over) {
       ctx.fillStyle = palette.ink;
-      ctx.textAlign = "center";
       ctx.font = `13px ${palette.mono}`;
       ctx.fillText(
         `${state.message} — ${state.delivered} delivered over ${transports[state.transport].name}`,
         WIDTH / 2,
-        HEIGHT / 2,
+        LANES[2] + 28,
       );
+      ctx.fillStyle = palette.dim;
+      ctx.font = `11px ${palette.mono}`;
+      ctx.fillText("press Run again, or pick another transport", WIDTH / 2, LANES[2] + 50);
     }
   };
 

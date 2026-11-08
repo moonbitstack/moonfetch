@@ -19,9 +19,13 @@
   --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
+  /* A keyword is the one place the silk darkens into the ink, so the two hues stay one family. */
+  --code-kw: color-mix(in srgb, var(--silk) 58%, var(--ink));
+
   --rail: 44px;
   --gap: 52px;
   --thread: 22px;
+  --gutter: 36px;
   --wide: 74ch;
   --page: 1100px;
 
@@ -358,6 +362,15 @@ main.page::before {
   body {
     font-size: 16px;
   }
+  /* A full address is long: on a narrow sheet it takes a line of its own rather than scroll
+     inside a column too short to show where it goes. */
+  .reqline {
+    grid-template-columns: 88px minmax(0, 1fr);
+  }
+  .reqline input {
+    grid-column: 1 / -1;
+    font-size: 11.5px;
+  }
 }
 
 /* ---------------------------------------------------------------- hero */
@@ -605,116 +618,288 @@ main.page::before {
   }
 }
 
-/* ---------------------------------------------------------------- code */
+/* ---------------------------------------------------------------- a sheet of code */
 
-.code {
+.snippet {
   position: relative;
-  margin: 18px 0;
-  padding: 14px 16px;
-  background: var(--wash);
+  margin: 22px 0;
   border: 1px solid var(--rule);
-  border-left: 2px solid var(--rule-2);
   border-radius: 2px;
-  overflow-x: auto;
-  overflow-y: auto;
-  max-height: 460px;
-  line-height: 1.66;
-  tab-size: 2;
+  background: var(--wash);
+  overflow: hidden;
 }
 
-.code code {
-  white-space: pre;
-  display: block;
-  color: var(--ink);
+/* The thread passes the block without entering it: a hairline down the outer edge, fading. */
+.snippet::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--rule-2), transparent 72%);
 }
 
-.code .c {
+.snippet-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 11px 7px 15px;
+  border-bottom: 1px solid var(--rule);
+  background: color-mix(in srgb, var(--ink) 2.5%, transparent);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
   color: var(--ink-3);
 }
 
-.code .s {
+/* A label is a name, not a heading: `MoonBit` and `moon.pkg` keep the case they are written in. */
+.snippet-label {
+  color: var(--ink-2);
+  text-transform: none;
+  letter-spacing: 0.04em;
+}
+
+.snippet-chip {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--silk);
+  border: 1px solid color-mix(in srgb, var(--silk) 32%, transparent);
+  border-radius: 99px;
+  padding: 0 7px;
+  cursor: help;
+}
+
+.snippet-copy {
+  margin-left: auto;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: none;
+  font: inherit;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  cursor: pointer;
+  padding: 2px 1px;
+}
+
+.snippet-copy:hover {
+  color: var(--ink);
+  border-bottom-color: var(--silk);
+}
+
+.snippet-copy.done {
   color: var(--silk);
 }
 
-.code .k {
-  color: var(--ink);
+/* The body scrolls in both directions; the numbers are sticky, so a long line never takes them
+   away from the reader. */
+.snippet-body {
+  margin: 0;
+  padding: 13px 0;
+  overflow: auto;
+  max-height: 470px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.74;
+  tab-size: 2;
+  white-space: normal;
+}
+
+.snippet-line {
+  display: grid;
+  grid-template-columns: var(--gutter) max-content;
+  align-items: baseline;
+}
+
+.snippet-line > i {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  padding-right: 10px;
+  text-align: right;
+  font-style: normal;
+  font-size: 10.5px;
+  color: color-mix(in srgb, var(--ink-3) 70%, transparent);
+  background: var(--wash);
+  border-right: 1px solid var(--rule);
+  user-select: none;
+}
+
+.snippet-tx {
+  padding: 0 18px 0 14px;
+  white-space: pre;
+}
+
+.snippet-body.plain .snippet-line {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.snippet-body.plain .snippet-tx {
+  padding-left: 15px;
+}
+
+.snippet-body > .tok-p {
+  display: block;
+  padding: 0 18px 0 15px;
+  white-space: pre;
+  color: var(--ink-3);
+}
+
+.snippet .tok-c {
+  color: var(--ink-3);
+  font-style: italic;
+}
+
+.snippet .tok-s {
+  color: var(--silk);
+}
+
+.snippet .tok-k {
+  color: var(--code-kw);
   font-weight: 500;
 }
 
-.code .f {
+.snippet .tok-t {
   color: var(--ink-2);
+  font-weight: 500;
 }
 
-.code .tag {
-  display: block;
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+.snippet .tok-m {
   color: var(--ink-3);
-  margin-bottom: 10px;
+}
+
+.snippet .tok-n {
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.snippet .tok-a {
+  color: var(--silk-soft);
+}
+
+/* Before the sheet is dressed: the source, still legible, still the thing a reader copies. */
+pre.code {
+  margin: 18px 0;
+  padding: 13px 16px;
+  border: 1px solid var(--rule);
+  background: var(--wash);
+  border-radius: 2px;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+  white-space: pre;
 }
 
 .out {
-  margin: -8px 0 18px;
-  padding: 10px 16px;
-  border-left: 2px solid var(--rule-2);
+  margin: -6px 0 18px;
+  padding: 10px 0 10px 14px;
+  border-left: 1px solid var(--rule-2);
   color: var(--ink-3);
   font-family: var(--mono);
   font-size: 12.5px;
-  line-height: 1.6;
+  line-height: 1.7;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
-/* ---------------------------------------------------------------- anatomy */
+/* ---------------------------------------------------------------- the bench */
 
-.lab {
+/* The home page's two-panel proof: the code, and the octets it becomes. */
+.proof {
   display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  gap: 28px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 26px;
   align-items: start;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
-@media (width <= 980px) {
-  .lab {
+.proof > * {
+  min-width: 0;
+}
+
+.proof .snippet {
+  margin-top: 0;
+}
+
+@media (width <= 900px) {
+  .proof {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
-.form {
+/* A grid item may not be narrower than its content unless it is told to be: a long body would
+   otherwise push the whole bench past the page. */
+.bench > * {
+  min-width: 0;
+}
+
+.bench {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 26px;
+  align-items: start;
+  margin-top: 10px;
+}
+
+@media (width <= 1040px) {
+  .bench {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+  }
+}
+
+.bench-in {
   position: sticky;
-  top: 76px;
+  top: 74px;
   border: 1px solid var(--rule);
   border-radius: 2px;
-  padding: 16px;
   background: var(--panel);
 }
 
-@media (width <= 980px) {
-  .form {
+@media (width <= 1040px), (height <= 760px) {
+  .bench-in {
     position: static;
   }
 }
 
-.field {
-  margin-bottom: 12px;
-}
-
-.field label {
-  display: block;
+.bench-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 13px;
+  border-bottom: 1px solid var(--rule);
   font-family: var(--mono);
   font-size: 10.5px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   color: var(--ink-3);
-  margin-bottom: 6px;
 }
 
-.field input,
-.field textarea,
-.field select {
+.bench-head b {
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.bench-body {
+  padding: 13px;
+}
+
+.reqline {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 7px;
+  margin-bottom: 13px;
+}
+
+.reqline select,
+.reqline input,
+.field textarea {
   width: 100%;
   font-family: var(--mono);
   font-size: 12.5px;
@@ -724,95 +909,231 @@ main.page::before {
   border-radius: 2px;
   padding: 8px 9px;
   line-height: 1.5;
-  resize: vertical;
+}
+
+.reqline select {
+  cursor: pointer;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 49%, var(--ink-3) 50%),
+    linear-gradient(-45deg, transparent 49%, var(--ink-3) 50%);
+  background-size: 5px 5px, 5px 5px;
+  background-position: calc(100% - 14px) 14px, calc(100% - 9px) 14px;
+  background-repeat: no-repeat;
+}
+
+.field {
+  margin-bottom: 11px;
+}
+
+.field label {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 5px;
+}
+
+.field label span {
+  letter-spacing: 0.06em;
+  text-transform: none;
 }
 
 .field textarea {
-  min-height: 62px;
+  min-height: 58px;
+  resize: vertical;
+  display: block;
 }
 
-.field input:focus,
+.reqline input:focus,
 .field textarea:focus,
-.field select:focus {
+.reqline select:focus {
   outline: none;
   border-color: var(--silk);
 }
 
-.field .two {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
+.bench-acts {
+  display: flex;
+  align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
 }
 
-.panes {
+.bench-acts .btn {
+  font-size: 12.5px;
+  padding: 9px 13px 8px;
+}
+
+.bench-acts .btn[disabled] {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.bench-acts .key {
+  margin-left: auto;
+}
+
+/* The two weights, set as a rule: a reader sees at a glance which version costs more. */
+.ledger {
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--wash);
+  padding: 10px 13px 11px;
+  margin-bottom: 18px;
+}
+
+.ledger-row {
   display: grid;
-  gap: 22px;
-}
-
-.pane h3 {
-  margin: 0 0 8px;
+  grid-template-columns: 62px minmax(0, 1fr) 74px;
+  align-items: center;
+  gap: 10px;
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.16em;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-3);
+}
+
+.ledger-row + .ledger-row {
+  margin-top: 7px;
+}
+
+.ledger-row .gauge {
+  height: 4px;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.ledger-row .gauge span {
+  display: block;
+  height: 100%;
+  width: var(--fill, 0%);
+  background: color-mix(in srgb, var(--ink) 42%, transparent);
+  transition: width 0.35s ease;
+}
+
+.ledger-row.h2 .gauge span {
+  background: var(--silk);
+}
+
+.ledger-row em {
+  font-style: normal;
+  text-align: right;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--ink-2);
+}
+
+.pane {
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--wash);
+  overflow: hidden;
+}
+
+.pane + .pane {
+  margin-top: 18px;
+}
+
+.pane-bar {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
-}
-
-.pane h3 em {
-  font-style: normal;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  padding: 7px 12px 7px 13px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
   color: var(--ink-3);
-  letter-spacing: 0.04em;
-  text-transform: none;
-  font-size: 11px;
 }
 
-.bytes {
-  border: 1px solid var(--rule);
-  border-left: 2px solid var(--silk);
-  border-radius: 2px;
-  background: var(--wash);
-  padding: 12px 14px;
+.pane-bar b {
+  color: var(--ink-2);
+  font-weight: 500;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.pane-bar b::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  background: var(--rule-2);
+  transform: rotate(45deg) translateY(-1px);
+}
+
+.pane.h1 .pane-bar b::before {
+  background: var(--silk);
+}
+
+.pane-bar b,
+.pane-bar em {
+  white-space: nowrap;
+}
+
+.pane-bar em {
+  font-style: normal;
+  letter-spacing: 0.03em;
+  text-transform: none;
+  color: var(--ink-3);
+}
+
+.pane .scroll {
   overflow: auto;
-  max-height: 340px;
+  max-height: 330px;
+  max-width: 100%;
 }
 
 .bytes pre {
   margin: 0;
+  padding: 12px 14px;
   white-space: pre;
   font-size: 12.5px;
-  line-height: 1.7;
+  line-height: 1.72;
   color: var(--ink);
-}
-
-.bytes .h {
-  color: var(--ink-3);
 }
 
 .bytes .r {
   color: var(--silk);
 }
 
+.bytes .h {
+  color: var(--ink-3);
+}
+
 .bytes .b {
   color: var(--ink-2);
 }
 
+.bytes .rule {
+  display: block;
+  margin: 8px 0 6px;
+  color: var(--ink-3);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-top: 1px dashed var(--rule-2);
+  padding-top: 6px;
+}
+
 .frames {
-  border: 1px solid var(--rule);
-  border-radius: 2px;
-  background: var(--wash);
-  overflow: auto;
-  max-height: 340px;
+  padding: 0;
 }
 
 .frame {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 62px;
-  gap: 4px 12px;
-  padding: 9px 13px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 10px;
+  align-items: baseline;
+  padding: 9px 13px 10px;
   border-bottom: 1px solid var(--rule);
 }
 
@@ -820,63 +1141,135 @@ main.page::before {
   border-bottom: 0;
 }
 
-.frame .name {
+.frame-name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
   font-family: var(--mono);
   font-size: 12px;
+}
+
+.frame-name b {
+  font-weight: 500;
+  color: var(--ink);
   letter-spacing: 0.02em;
 }
 
-.frame .name b {
-  font-weight: 500;
+.frame-name s {
+  text-decoration: none;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  border: 1px solid var(--rule-2);
+  border-radius: 99px;
+  padding: 0 6px;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.frame-size {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.frame-hex {
+  grid-column: 1 / -1;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--ink-3) 82%, transparent);
+  overflow-wrap: anywhere;
+}
+
+.frame.data .frame-name b {
   color: var(--ink);
 }
 
-.frame .name s {
-  text-decoration: none;
-  color: var(--ink-3);
+.frame.data {
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--silk) 45%, transparent);
 }
 
-.frame .size {
+.frame.control .frame-name b {
+  color: var(--ink-2);
+}
+
+.pane-empty {
+  padding: 16px 14px;
   font-family: var(--mono);
   font-size: 11.5px;
   color: var(--ink-3);
-  text-align: right;
 }
 
-.frame .hex {
-  grid-column: 1 / -1;
-  font-family: var(--mono);
-  font-size: 11px;
-  line-height: 1.65;
-  color: var(--ink-3);
-  overflow-wrap: anywhere;
-}
-
-.answer {
-  margin-top: 20px;
+/* What comes back, under the whole bench: the other half of the conversation. */
+.reply {
+  margin-top: 24px;
   border: 1px solid var(--rule);
   border-radius: 2px;
-  padding: 14px;
-  background: var(--panel);
-  font-family: var(--mono);
-  font-size: 12.5px;
-  min-height: 54px;
-  color: var(--ink-2);
-  overflow-wrap: anywhere;
+  background: var(--wash);
 }
 
-.answer .status {
+.reply-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 13px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.reply-bar .status {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: none;
   color: var(--silk);
 }
 
-.answer .k {
+.reply-bar .ok {
+  color: var(--silk);
+}
+
+/* The answer stays, but it says that it is no longer the answer to what is on screen. */
+.reply-bar .stale {
+  color: var(--silk);
+  border: 1px solid color-mix(in srgb, var(--silk) 32%, transparent);
+  border-radius: 99px;
+  padding: 0 7px;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+.reply pre {
+  margin: 0;
+  padding: 13px 14px;
+  max-height: 300px;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.72;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--ink-2);
+}
+
+.reply pre .k {
   color: var(--ink-3);
 }
 
-.note {
-  font-size: 13px;
-  color: var(--ink-3);
-  line-height: 1.6;
+.reply pre .body {
+  color: var(--ink);
 }
 
 /* ---------------------------------------------------------------- game */
@@ -1219,4 +1612,282 @@ footer .meta .tick {
     mask-image: radial-gradient(ellipse 66% 40% at 50% 50%, transparent 0 80%, #000 100%);
     -webkit-mask-image: radial-gradient(ellipse 66% 40% at 50% 50%, transparent 0 80%, #000 100%);
   }
+}
+
+/* ---------------------------------------------------------------- notes */
+
+.note {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  line-height: 1.65;
+  max-width: 62ch;
+}
+
+.note code {
+  font-size: 0.92em;
+}
+
+/* ---------------------------------------------------------------- the sheet's furniture */
+
+/* A hairline ruler under the bar: eighths at a glance, a longer mark every forty pixels. The page
+   is a measured sheet, so it carries a scale. */
+.bar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -5px;
+  height: 5px;
+  pointer-events: none;
+  opacity: 0.85;
+  background-image: repeating-linear-gradient(90deg, var(--rule-2) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(90deg, var(--rule) 0 1px, transparent 1px 8px);
+  background-size: 100% 5px, 100% 2px;
+  background-position: 0 100%, 0 100%;
+  background-repeat: repeat-x;
+}
+
+/* Paper: a grain of dots, far below the threshold at which it would compete with the type. */
+body {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in srgb, var(--ink) 6%, transparent) 1px,
+    transparent 0
+  );
+  background-size: 26px 26px;
+  background-attachment: fixed;
+}
+
+/* An eyebrow that names a product keeps its case: `ShowCase` is spelled that way, and upper case
+   would take the spelling away. */
+.eyebrow.plain {
+  text-transform: none;
+  letter-spacing: 0.16em;
+  font-size: 11px;
+}
+
+/* A heading runs out to a rule that fades: the thread's neighbour, never the thread. */
+.stop h2 {
+  display: flex;
+  align-items: baseline;
+}
+
+.stop h2::after {
+  content: "";
+  flex: 1 1 auto;
+  min-width: 24px;
+  height: 1px;
+  margin-left: 26px;
+  transform: translateY(-7px);
+  background: linear-gradient(90deg, var(--rule-2), transparent 92%);
+}
+
+/* A row lights its own edge, as a knot on the thread would. */
+.row::before {
+  content: "";
+  position: absolute;
+  left: -16px;
+  top: 15px;
+  bottom: 15px;
+  width: 1px;
+  background: var(--silk);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.row:hover::before {
+  opacity: 0.55;
+}
+
+@media (width <= 860px) {
+  .row::before {
+    left: -10px;
+  }
+  /* On a narrow sheet the rule would be a stray dash beside a wrapped title. */
+  .stop h2::after {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------- the masthead */
+
+.masthead {
+  padding: 46px 0 0;
+}
+
+.masthead h1 {
+  font-family: var(--mono);
+  font-size: clamp(27px, 3.6vw, 40px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  margin: 14px 0 18px;
+  max-width: 30ch;
+}
+
+.masthead .lede {
+  font-size: 17.5px;
+  line-height: 1.62;
+  color: var(--ink-2);
+  max-width: 56ch;
+  margin: 0;
+}
+
+.masthead .index {
+  margin-top: 34px;
+  border-top: 1px solid var(--rule-2);
+  padding-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 44px;
+}
+
+.masthead .index a {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 0;
+  border: 0;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+.masthead .index a b {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  color: var(--ink-3);
+  width: 20px;
+  flex: none;
+}
+
+.masthead .index a i {
+  flex: 1 1 auto;
+  height: 1px;
+  min-width: 12px;
+  border-bottom: 1px dotted var(--rule-2);
+  transform: translateY(-3px);
+}
+
+.masthead .index a:hover {
+  color: var(--silk);
+}
+
+.masthead .index a:hover i {
+  border-bottom-color: var(--silk);
+}
+
+@media (width <= 860px) {
+  .masthead .index {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}
+
+/* ---------------------------------------------------------------- a note in the margin */
+
+/* Set beside the prose where the sheet is wide enough to hold it, and folded back into the
+   column where it is not. */
+.marque {
+  position: relative;
+  float: right;
+  clear: right;
+  width: 182px;
+  margin: 6px 0 20px 44px;
+  padding-top: 6px;
+  border-top: 1px solid var(--rule-2);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+  color: var(--ink-3);
+}
+
+/* The rule above a note begins with a thread's worth of silk, so that a note reads as attached
+   to the sheet rather than dropped on it. */
+.marque::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: -1px;
+  width: 14px;
+  height: 1px;
+  background: var(--silk);
+}
+
+.marque b {
+  display: block;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 9.5px;
+  color: var(--ink-2);
+  margin-bottom: 3px;
+}
+
+@media (width <= 1080px) {
+  .marque {
+    float: none;
+    width: auto;
+    max-width: var(--wide);
+    margin: 14px 0 18px;
+  }
+}
+
+/* ---------------------------------------------------------------- the end of a page */
+
+.endmark {
+  display: flex;
+  justify-content: center;
+  padding: 54px 0 10px;
+  color: var(--rule-2);
+}
+
+.endmark svg {
+  width: 132px;
+  height: 24px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1;
+}
+
+/* A small web closes the thread, the way the home page opened with one. */
+.endmark svg .knot {
+  stroke: var(--silk);
+  opacity: 0.7;
+}
+
+.endmark svg .core {
+  fill: var(--silk);
+  stroke: none;
+}
+
+/* ---------------------------------------------------------------- presets */
+
+.presets {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+}
+
+.chip {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  background: transparent;
+  border: 1px solid var(--rule-2);
+  border-radius: 99px;
+  padding: 4px 9px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.chip:hover {
+  color: var(--silk);
+  border-color: var(--silk);
 }

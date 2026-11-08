@@ -24,7 +24,7 @@
         <a href="./index.html">Home</a>
         <a href="./guide.html">Guide</a>
         <a href="./api.html" class="on">API</a>
-        <a href="./showcase.html">Showcase</a>
+        <a href="./showcase.html">ShowCase</a>
         <a
           class="icon"
           href="https://github.com/moonbitstack/moonfetch"
@@ -47,6 +47,22 @@
     </header>
 
     <main class="page">
+      <header class="masthead">
+        <p class="eyebrow">API reference · <span data-fill="items">52</span> items</p>
+        <h1>The published surface.</h1>
+        <p class="lede">
+          Everything <code>moonfetch</code> publishes, in the order the interface files list it. The
+          signatures are the compiler's own; the prose is the doc comment the item carries in the
+          source.
+        </p>
+        <p class="note" style="margin-top: 16px">
+          The browser host is the same package with a second transport, so its <code>Client</code>
+          takes <code>credentials</code> where the others take <code>tls</code>, and a few names are
+          only there. What differs is in the <a href="./guide.html#browser">guide</a>, since one
+          interface file cannot hold both.
+        </p>
+      </header>
+
       <div class="api">
         <aside class="toc scroll">
           <h2>Packages</h2>
@@ -85,17 +101,6 @@
         </aside>
 
         <div class="ref">
-          <h1 style="font-size: 30px; margin: 0 0 10px">API reference</h1>
-          <p class="lead" style="max-width: 64ch">
-            Everything <code>moonfetch</code> publishes, in the order the interface files list it.
-            The signatures are the compiler's own; the prose is the doc comment the item carries.
-          </p>
-          <p class="note" style="max-width: 64ch">
-            The browser host is the same package with a second transport, so its <code>Client</code>
-            takes <code>credentials</code> where the others take <code>tls</code>, and a few names
-            are only there. What differs is in the <a href="./guide.html#browser">guide</a>, since
-            one interface file cannot hold both.
-          </p>
           <section class="band" id="moonfetch-top">
 <div class="band-head"><h2>moonfetch</h2><span class="route">moonbitstack/moonfetch</span></div>
 <p>The client, the request it sends, the response it reads, and the values both are made of.</p>
@@ -323,6 +328,18 @@ frame's type and the flags it carries.</p>
 </section>
         </div>
       </div>
+
+      <div class="endmark" aria-hidden="true">
+        <svg viewBox="0 0 128 24">
+          <path d="M0 12h44M84 12h44" />
+          <g class="knot">
+            <circle cx="64" cy="12" r="10" />
+            <circle cx="64" cy="12" r="5.4" />
+            <path d="M64 2v20M54 12h20M57 5l14 14M71 5L57 19" />
+          </g>
+          <circle cx="64" cy="12" r="1.8" class="core" />
+        </svg>
+      </div>
     </main>
 
     <footer>
@@ -340,14 +357,14 @@ frame's type and the flags it carries.</p>
             <ul>
               <li><a href="./guide.html">Guide</a></li>
               <li><a href="./api.html">API reference</a></li>
-              <li><a href="./showcase.html">Showcase</a></li>
+              <li><a href="./showcase.html">ShowCase</a></li>
             </ul>
           </div>
           <div>
             <h4>Elsewhere</h4>
             <ul>
               <li><a href="https://github.com/moonbitstack/moonfetch">GitHub</a></li>
-              <li><a href="https://mooncakes.io/docs/moonbitstack/moonfetch">mooncakes</a></li>
+              <li><a href="https://mooncakes.io/docs/moonbitstack/moonfetch">MoonCakes</a></li>
               <li>
                 <a href="https://github.com/moonbitstack/moonfetch/blob/master/LICENSE"
                   >Apache-2.0</a
@@ -371,5 +388,6 @@ frame's type and the flags it carries.</p>
     </footer>
 
     <script src="./assets/site.js"></script>
+    <script src="./assets/code.js"></script>
   </body>
 </html>

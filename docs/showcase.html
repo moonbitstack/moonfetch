@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Showcase — moonfetch</title>
+    <title>ShowCase — moonfetch</title>
     <meta
       name="description"
       content="A request written before your eyes: the HTTP/1.1 octets and the HTTP/2 frames this library builds, and a game about what a lost packet does to three transports."
@@ -24,7 +24,7 @@
         <a href="./index.html">Home</a>
         <a href="./guide.html">Guide</a>
         <a href="./api.html">API</a>
-        <a href="./showcase.html" class="on">Showcase</a>
+        <a href="./showcase.html" class="on">ShowCase</a>
         <a
           class="icon"
           href="https://github.com/moonbitstack/moonfetch"
@@ -47,21 +47,35 @@
     </header>
 
     <main class="page">
+      <header class="masthead">
+        <p class="eyebrow plain">ShowCase · two demonstrations</p>
+        <h1>Watch it write a request, then lose one.</h1>
+        <p class="lede">
+          Nothing on this page describes what <code>moonfetch</code> would do: the same package, built
+          to JavaScript and loaded here, does it while you type.
+        </p>
+        <div class="index">
+          <a href="#anatomy"><b>01</b><span>Anatomy of a request</span><i></i></a>
+          <a href="#convoy"><b>02</b><span>Convoy</span><i></i></a>
+          <a href="#take"><b>03</b><span>What the page shows</span><i></i></a>
+        </div>
+      </header>
+
       <section class="stop" id="anatomy">
         <div class="node"></div>
         <h2><span class="num">01</span>The anatomy of a request</h2>
         <p class="lead">
-          Type a request; the library that would send it writes it out. Both panels are produced by
+          Change the method, the address, a field or the body. The panels are produced by
           <code>moonfetch</code> compiled to JavaScript and running in this page — the same
           <code>wire</code> and <code>frames</code> a program calls.
         </p>
 
-        <div class="lab">
-          <form class="form" data-form onsubmit="return false">
-            <div class="field">
-              <label for="verb">Method</label>
-              <div class="two">
-                <select id="verb" data-verb>
+        <div class="bench">
+          <form class="bench-in" data-form autocomplete="off" onsubmit="return false">
+            <div class="bench-head"><b>Request</b><span>written as you type</span></div>
+            <div class="bench-body">
+              <div class="reqline">
+                <select data-verb aria-label="Method">
                   <option>GET</option>
                   <option>POST</option>
                   <option>PUT</option>
@@ -71,45 +85,61 @@
                   <option>OPTIONS</option>
                 </select>
                 <input
-                  id="url"
                   data-url
                   value="https://httpbin.org/anything"
                   spellcheck="false"
                   aria-label="URL"
                 />
               </div>
-            </div>
-            <div class="field">
-              <label for="headers">Fields, one to a line</label>
-              <textarea id="headers" data-headers spellcheck="false">accept: application/json</textarea>
-            </div>
-            <div class="field">
-              <label for="body">Body</label>
-              <textarea id="body" data-body spellcheck="false" placeholder="empty"></textarea>
-            </div>
-            <button class="btn solid" type="button" data-send>Send it for real</button>
-            <p class="note" style="margin-top: 10px">
-              Sending asks a public echo service over the network, from this page, through this
-              library's browser host. It may be slow, and it may be refused.
-            </p>
-          </form>
-
-          <div class="panes">
-            <div class="pane">
-              <h3>HTTP/1.1 <em data-h1-size></em></h3>
-              <div class="bytes scroll"><pre data-h1></pre></div>
-            </div>
-            <div class="pane">
-              <h3>HTTP/2 <em data-h2-size></em></h3>
-              <div class="frames scroll" data-h2></div>
-            </div>
-            <div class="pane">
-              <h3>What came back</h3>
-              <div class="answer scroll" data-answer>
-                <span class="k">nothing sent yet</span>
+              <div class="field">
+                <label for="headers">Fields <span>name: value, one to a line</span></label>
+                <textarea id="headers" data-headers spellcheck="false">accept: application/json</textarea>
+              </div>
+              <div class="field">
+                <label for="body">Body <span>sent as text/plain</span></label>
+                <textarea id="body" data-body spellcheck="false" placeholder="none"></textarea>
+              </div>
+              <div class="bench-acts">
+                <button class="btn solid" type="button" data-send>Send it</button>
+                <span class="key">⌘ ↵</span>
+              </div>
+              <div class="presets">
+                <button class="chip" type="button" data-preset="json">JSON body</button>
+                <button class="chip" type="button" data-preset="form">a form</button>
+                <button class="chip" type="button" data-preset="bulk">8 KB body</button>
               </div>
             </div>
+          </form>
+
+          <div class="bench-out">
+            <div class="ledger">
+              <div class="ledger-row h1">
+                <b>HTTP/1.1</b><span class="gauge"><span data-gauge-h1></span></span>
+                <em data-h1-cost>—</em>
+              </div>
+              <div class="ledger-row h2">
+                <b>HTTP/2</b><span class="gauge"><span data-gauge-h2></span></span>
+                <em data-h2-cost>—</em>
+              </div>
+            </div>
+            <div class="pane h1">
+              <div class="pane-bar"><b>What goes out</b><em data-h1-size></em></div>
+              <div class="scroll"><pre class="bytes" data-h1></pre></div>
+            </div>
+            <div class="pane">
+              <div class="pane-bar"><b>The same, in frames</b><em data-h2-size></em></div>
+              <div class="frames scroll" data-h2></div>
+            </div>
           </div>
+        </div>
+
+        <div class="reply">
+          <div class="reply-bar">
+            <span data-reply-state>nothing sent</span>
+            <span data-reply-meta></span>
+            <span class="stale" data-reply-stale hidden>edited since</span>
+          </div>
+          <pre data-answer><span class="k">Send it</span> makes the request described above for real, from this page, through the browser host of the same library. It asks a public echo service, so it can be slow, and it can be refused.</pre>
         </div>
       </section>
 
@@ -117,7 +147,7 @@
         <div class="node"></div>
         <h2><span class="num">02</span>Convoy</h2>
         <p class="lead">
-          Ten requests, a client, a server, and a packet lost every few seconds. Switch the
+          One client, one server, ten requests, and a packet lost every few seconds. Switch the
           transport and watch what one loss costs the others: on HTTP/2 the streams are meant to be
           independent, but they share a connection, which is why HTTP/3 exists.
         </p>
@@ -134,9 +164,9 @@
           <p class="note" data-note style="margin: 10px 0 0"></p>
         </div>
         <p class="prose" style="margin-top: 18px">
-          The octets at the end of the score line are the library's own count: every delivery costs
-          what <code>wire</code> or <code>frames</code> says the request weighs, so switching
-          transports changes the arithmetic as well as the traffic.
+          The octets in the score line are the library's own count: every delivery costs what
+          <code>wire</code> or <code>frames</code> says the request weighs, so switching transports
+          changes the arithmetic as well as the traffic.
         </p>
       </section>
 
@@ -161,8 +191,8 @@
           <div class="row">
             <span class="n">c</span><span class="k">Field sections</span>
             <span class="v"
-              >The HEADERS frame is HPACK, so its octets are not text: the hex is what goes out on
-              a first request, against the static table alone.</span
+              >The HEADERS frame is HPACK, so its octets are not text: the hex is what goes out on a
+              first request, against the static table alone.</span
             >
           </div>
           <div class="row">
@@ -174,6 +204,18 @@
           </div>
         </div>
       </section>
+
+      <div class="endmark" aria-hidden="true">
+        <svg viewBox="0 0 128 24">
+          <path d="M0 12h44M84 12h44" />
+          <g class="knot">
+            <circle cx="64" cy="12" r="10" />
+            <circle cx="64" cy="12" r="5.4" />
+            <path d="M64 2v20M54 12h20M57 5l14 14M71 5L57 19" />
+          </g>
+          <circle cx="64" cy="12" r="1.8" class="core" />
+        </svg>
+      </div>
     </main>
 
     <footer>
@@ -191,14 +233,14 @@
             <ul>
               <li><a href="./guide.html">Guide</a></li>
               <li><a href="./api.html">API reference</a></li>
-              <li><a href="./showcase.html">Showcase</a></li>
+              <li><a href="./showcase.html">ShowCase</a></li>
             </ul>
           </div>
           <div>
             <h4>Elsewhere</h4>
             <ul>
               <li><a href="https://github.com/moonbitstack/moonfetch">GitHub</a></li>
-              <li><a href="https://mooncakes.io/docs/moonbitstack/moonfetch">mooncakes</a></li>
+              <li><a href="https://mooncakes.io/docs/moonbitstack/moonfetch">MoonCakes</a></li>
               <li>
                 <a href="https://github.com/moonbitstack/moonfetch/blob/master/LICENSE"
                   >Apache-2.0</a
@@ -224,6 +266,7 @@
     </footer>
 
     <script src="./assets/site.js"></script>
+    <script src="./assets/code.js"></script>
     <script src="./assets/anatomy.js"></script>
     <script src="./assets/game.js"></script>
   </body>

@@ -195,30 +195,4 @@
       );
     }
   }
-
-  /* ------------------------------------------------------------ MoonBit blocks */
-
-  const KEYWORDS =
-    /\b(async|fn|let|mut|match|if|else|guard|for|while|loop|return|raise|try|catch|noraise|defer|errdefer|pub|priv|struct|enum|suberror|trait|impl|extend|type|test|true|false|None|Some|break|continue|abort|is|as|self|in)\b/g;
-
-  const paint = (source) => {
-    // Strings, then comments, then keywords — each step escapes what it wraps, so nothing is
-    // matched twice.
-    const slots = [];
-    const keep = (html) => `\u0000${slots.push(html) - 1}\u0000`;
-    let text = source.replace(/"(?:[^"\\\n]|\\.)*"/g, (match) => keep(`<span class="s">${esc(match)}</span>`));
-    text = text.replace(/\/\/[^\n]*/g, (match) => keep(`<span class="c">${esc(match)}</span>`));
-    text = esc(text);
-    text = text.replace(KEYWORDS, '<span class="k">$1</span>');
-    return text.replace(/\u0000(\d+)\u0000/g, (_, at) => slots[Number(at)]);
-  };
-
-  const esc = (text) =>
-    text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-  for (const block of document.querySelectorAll("pre.code > code")) {
-    if (block.dataset.painted) continue;
-    block.dataset.painted = "1";
-    block.innerHTML = paint(block.textContent);
-  }
 })();

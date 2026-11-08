@@ -1,6 +1,6 @@
 name: Release
 
-# A version tag publishes this module to mooncakes under the moonbitstack account. Publishing is
+# A version tag publishes this module to MoonCakes under the moonbitstack account. Publishing is
 # opt-in: the publish job runs only while the organization (or repository) variable
 # MOONCAKES_PUBLISH is 'true', so a tag with the switch off only runs the tests.
 on:

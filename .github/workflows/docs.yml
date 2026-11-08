@@ -1,0 +1,74 @@
+name: Docs
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "docs/**"
+      - "src/**"
+      - "scripts/**"
+      - "moon.mod"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-26.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: install moon
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      # The pages call the library, they do not describe it: the engine is this commit's source
+      # built to JavaScript, and it is not kept in the repository.
+      - name: build the engine the pages run
+        run: |
+          moon update
+          moon build --target js src/examples/browser
+          mkdir -p docs/engine
+          cp _build/js/debug/build/examples/browser/browser.js docs/engine/moonfetch.js
+
+      - name: the reference is up to date
+        run: |
+          python3 scripts/gen_api.py
+          git diff --exit-code docs/api.html
+
+      - name: the numbers on the pages are the source's
+        run: |
+          python3 scripts/gen_site.py
+          git diff --exit-code docs
+
+      - name: the code on the pages compiles
+        run: python3 scripts/check_snippets.py README.md docs/skills/moonfetch/SKILL.md docs/index.html docs/guide.html docs/showcase.html
+
+      - name: configure pages
+        uses: actions/configure-pages@v6
+        with:
+          enablement: true
+
+      - name: upload the site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs
+
+      - name: deploy
+        id: deployment
+        uses: actions/deploy-pages@v5

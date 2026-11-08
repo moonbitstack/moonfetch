@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>API reference — moonfetch</title>
+    <meta
+      name="description"
+      content="Every public type, function and method of moonfetch and moonfetch/ws, with the doc comments the source carries."
+    />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/site.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <a class="mark" href="./index.html">moonfetch</a>
+      <nav>
+        <a href="./index.html">Home</a>
+        <a href="./guide.html">Guide</a>
+        <a href="./api.html" class="on">API</a>
+        <a href="./showcase.html">Showcase</a>
+        <a
+          class="icon"
+          href="https://github.com/moonbitstack/moonfetch"
+          aria-label="Source on GitHub"
+          title="Source on GitHub"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M9 19c-4 1.5-4-2.5-5.5-3M15 21v-3.9a3.4 3.4 0 0 0-1-2.6c3-.3 6.1-1.5 6.1-6.8a5.3 5.3 0 0 0-1.5-3.7 4.9 4.9 0 0 0-.1-3.7s-1.2-.4-3.9 1.4a13.3 13.3 0 0 0-7.1 0C4.8.9 3.6 1.3 3.6 1.3a4.9 4.9 0 0 0-.1 3.7A5.3 5.3 0 0 0 2 8.7c0 5.2 3.1 6.4 6.1 6.8a3.4 3.4 0 0 0-1 2.6V21"
+            />
+          </svg>
+        </a>
+        <button class="icon" data-theme-toggle type="button" aria-label="Switch theme">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="4.2" />
+            <path d="M12 2.4v2.2M12 19.4v2.2M2.4 12h2.2M19.4 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6" />
+          </svg>
+        </button>
+      </nav>
+    </header>
+
+    <main class="page">
+      <div class="api">
+        <aside class="toc scroll">
+          <h2>Packages</h2>
+          <ol>
+            <li><a href="#moonfetch-top">moonfetch</a><ol class="sub">
+<li><a href="#moonfetch-frames">frames</a></li>
+<li><a href="#moonfetch-idle">idle</a></li>
+<li><a href="#moonfetch-limits">limits</a></li>
+<li><a href="#moonfetch-redirects">redirects</a></li>
+<li><a href="#moonfetch-timeout">timeout</a></li>
+<li><a href="#moonfetch-wire">wire</a></li>
+<li><a href="#moonfetch-refused">Refused</a></li>
+<li><a href="#moonfetch-body">Body</a></li>
+<li><a href="#moonfetch-chunk">Chunk</a></li>
+<li><a href="#moonfetch-client">Client</a></li>
+<li><a href="#moonfetch-jar">Jar</a></li>
+<li><a href="#moonfetch-limits">Limits</a></li>
+<li><a href="#moonfetch-part">Part</a></li>
+<li><a href="#moonfetch-proxy">Proxy</a></li>
+<li><a href="#moonfetch-response">Response</a></li>
+<li><a href="#moonfetch-source">Source</a></li>
+<li><a href="#moonfetch-stream">Stream</a></li>
+<li><a href="#moonfetch-wire">Wire</a></li>
+</ol></li>
+<li><a href="#ws-top">ws</a><ol class="sub">
+<li><a href="#ws-refused">Refused</a></li>
+<li><a href="#ws-message">Message</a></li>
+<li><a href="#ws-websocket">WebSocket</a></li>
+</ol></li>
+          </ol>
+          <p class="note" style="margin-top: 18px">
+            Generated from the interface files and the doc comments in the source by
+            <code>scripts/gen_api.py</code>; the page is rebuilt on every push and a difference
+            fails the build.
+          </p>
+        </aside>
+
+        <div class="ref">
+          <h1 style="font-size: 30px; margin: 0 0 10px">API reference</h1>
+          <p class="lead" style="max-width: 64ch">
+            Everything <code>moonfetch</code> publishes, in the order the interface files list it.
+            The signatures are the compiler's own; the prose is the doc comment the item carries.
+          </p>
+          <p class="note" style="max-width: 64ch">
+            The browser host is the same package with a second transport, so its <code>Client</code>
+            takes <code>credentials</code> where the others take <code>tls</code>, and a few names
+            are only there. What differs is in the <a href="./guide.html#browser">guide</a>, since
+            one interface file cannot hold both.
+          </p>
+          <section class="band" id="moonfetch-top">
+<div class="band-head"><h2>moonfetch</h2><span class="route">moonbitstack/moonfetch</span></div>
+<p>The client, the request it sends, the response it reads, and the values both are made of.</p>
+<div class="entry" id="moonfetch-frames">
+<h3><span class="kind">fn</span>frames</h3>
+<p>The frames an HTTP/2 request is written as: the connection preface, this side's settings, and
+the HEADERS and DATA frames of the exchange.
+
+The connection is a fresh one, so the field section is encoded against the static table alone,
+which is what a first request on a connection looks like.</p><pre class="sig">fn frames(@method.Method, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], body? : Body) -&gt; Wire raise</pre>
+</div>
+<div class="entry" id="moonfetch-idle">
+<h3><span class="kind">let</span>idle</h3>
+<p>How many idle HTTP/1.1 connections are kept per origin: urllib3's 10.</p><pre class="sig">let idle : Int32</pre>
+</div>
+<div class="entry" id="moonfetch-limits">
+<h3><span class="kind">let</span>limits</h3>
+<p>The bounds a client uses when none are given: a 64 KiB head, 256 fields, and a 32 MiB body.
+
+No client of the common ones bounds a body by default; a library that returns a <code>Response</code>
+with the whole body in memory has to, or one answer can exhaust the process. 32 MiB covers
+the API payloads a buffered call is for; anything larger is read as a <code>Stream</code>, which is not
+bounded.</p><pre class="sig">let limits : Limits</pre>
+</div>
+<div class="entry" id="moonfetch-redirects">
+<h3><span class="kind">let</span>redirects</h3>
+<p>How many redirects are followed when nothing else is said: reqwest's and requests' 10.
+
+A host that hands the redirect to its own stack follows as many as it allows; this is the
+number requests say.</p><pre class="sig">let redirects : Int32</pre>
+</div>
+<div class="entry" id="moonfetch-timeout">
+<h3><span class="kind">let</span>timeout</h3>
+<p>How long a request may take when nothing else is said, in milliseconds: httpx's 5 seconds.</p><pre class="sig">let timeout : Int32</pre>
+</div>
+<div class="entry" id="moonfetch-wire">
+<h3><span class="kind">fn</span>wire</h3>
+<p>The octets an HTTP/1.1 request is written as, for a caller that wants to see them: the head
+with its framing, then the body.
+
+A body produced while the request goes out is not read here — taking its pieces would spend
+them — so only the head is written, with the framing that says a body follows.
+
+<code>Refused::Url</code> for a URL no request can name, and the state machine's own refusal for a field
+it cannot write.</p><pre class="sig">fn wire(@method.Method, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], body? : Body) -&gt; Wire raise</pre>
+</div>
+<div class="entry" id="moonfetch-refused">
+<h3><span class="kind">suberror</span>Refused</h3>
+<p>What moonfetch itself refuses. Errors from below pass through as they are: a socket that
+will not connect, a TLS alert, a response that does not parse.</p>
+<pre class="sig">suberror Refused {</pre>
+<ul class="variants"><li>Status(status~ : Int32, url~ : String)</li><li>Redirects(limit~ : Int32)</li><li>Reset(code~ : Int32)</li><li>Timeout(limit~ : Int32)</li><li>Url(String)</li><li>Exceeded(limit~ : Int32, got~ : Int32)</li><li>Proxy(String)</li></ul>
+<p>Implements <code>Show</code>.</p>
+</div>
+<div class="entry" id="moonfetch-body">
+<h3><span class="kind">enum</span>Body</h3>
+<p>A request body. One value, so a request cannot carry two bodies for the library to choose
+between.</p>
+<pre class="sig">enum Body {</pre>
+<ul class="variants"><li>Empty</li><li>Text(String)</li><li>Bytes(Bytes)</li><li>Json(@json.Json)</li><li>Form(Array[(String, String)])</li><li>Multipart(Array[Part])</li><li>Stream(Source)</li></ul>
+</div>
+<div class="entry" id="moonfetch-chunk">
+<h3><span class="kind">enum</span>Chunk</h3>
+<p>A piece of a response body as it arrives.</p>
+<pre class="sig">enum Chunk {</pre>
+<ul class="variants"><li>Data(Bytes)</li><li>End(Array[(String, String)])</li></ul>
+</div>
+<div class="entry" id="moonfetch-client">
+<h3><span class="kind">type</span>Client</h3>
+<p>An HTTP client over the host's <code>fetch</code>.
+
+<code>base_url</code> is the prefix relative URLs are joined to, as the client the other host has joins
+them. <code>headers</code> go on every request. <code>timeout</code> bounds each request, redirects included;
+<code>None</code> waits for ever. <code>redirects</code> caps how many are followed; 0 follows none. <code>credentials</code>
+is what the host may do with its cookies. <code>limits</code> bounds a buffered response.
+
+The host owns the connections, the cookie store, the proxy settings and the content codings,
+so there is no pool, jar or proxy here: <code>close</code> has nothing to close.</p>
+<pre class="sig">type Client</pre>
+<div class="member" id="moonfetch-client-close"><pre class="sig">fn Client::close(Self) -&gt; Unit</pre><p>Close every connection the client keeps.</p></div>
+<div class="member" id="moonfetch-client-new"><pre class="sig">fn Client::new(base_url? : String, headers? : Array[(String, String)], timeout? : Int32?, redirects? : Int32, http2? : Bool, compression? : Bool, http3? : Bool, idle? : Int32, h2c? : Bool, limits? : Limits, jar? : Jar, proxy? : Proxy, tls? : @tls.Client) -&gt; Self raise Refused</pre><p>A client.
+
+<code>base_url</code> is the prefix relative URLs are joined to, as httpx joins them: its path is kept,
+so <code>/users</code> under <code>https://a.example/api</code> is <code>https://a.example/api/users</code>. <code>headers</code> go on
+every request. <code>timeout</code> bounds each request, redirects included; <code>None</code> waits for ever.
+<code>redirects</code> caps how many are followed; 0 follows none. <code>http2</code> offers HTTP/2 by ALPN;
+<code>h2c</code> speaks HTTP/2 with prior knowledge over <code>http</code>, where there is no ALPN to ask.
+<code>compression</code> asks for gzip or deflate and decodes what comes back, as httpx and reqwest do;
+a request that names its own <code>accept-encoding</code> gets the body as sent.
+<code>http3</code> speaks HTTP/3 over QUIC where it can, and falls back to TCP for an origin that does
+not answer on the datagram, as a browser's Alt-Svc does without the cache.
+<code>limits</code> bounds what a buffered response may hold. <code>jar</code> keeps cookies across requests.
+<code>proxy</code> sends the connection through an HTTP or SOCKS5 proxy.
+<code>tls</code> judges servers' certificates, the Mozilla roots when not given; its ALPN list is set
+by <code>http2</code>.</p></div>
+</div>
+<div class="entry" id="moonfetch-jar">
+<h3><span class="kind">struct</span>Jar</h3>
+<p>A cookie store for a <code>Client</code> (RFC 6265bis).
+
+One jar may be shared by several clients and by tasks: every change goes through a lock.
+Persistence is not part of it — a jar lives as long as the process does.</p>
+<pre class="sig">struct Jar {</pre>
+<ul class="variants"><li>// private fields</li></ul>
+<div class="member" id="moonfetch-jar-clear"><pre class="sig">fn Jar::clear(Self) -&gt; Unit</pre></div>
+<div class="member" id="moonfetch-jar-new"><pre class="sig">fn Jar::new() -&gt; Self</pre><p>An empty jar.</p></div>
+<div class="member" id="moonfetch-jar-size"><pre class="sig">fn Jar::size(Self) -&gt; Int32</pre><p>How many cookies the jar holds.</p></div>
+</div>
+<div class="entry" id="moonfetch-limits">
+<h3><span class="kind">struct</span>Limits</h3>
+<p>What a client reads of a response before it refuses it.
+
+<code>head</code> bounds the status line and header block, <code>fields</code> the number of header fields, and
+<code>body</code> the body as it arrives, before any content coding is undone. The body bound is
+checked as the octets come in, so a server that would send more is stopped early rather
+than after the allocation.</p>
+<pre class="sig">struct Limits {</pre>
+<ul class="variants"><li>head : Int32</li><li>fields : Int32</li><li>body : Int32</li></ul>
+<div class="member" id="moonfetch-limits-new"><pre class="sig">fn Limits::new(head? : Int32, fields? : Int32, body? : Int32) -&gt; Self</pre><p>The same bounds with some replaced.</p></div>
+</div>
+<div class="entry" id="moonfetch-part">
+<h3><span class="kind">struct</span>Part</h3>
+<p>One part of a <code>multipart/form-data</code> body (RFC 7578): a form field when <code>filename</code> is <code>None</code>,
+a file otherwise.</p>
+<pre class="sig">struct Part {</pre>
+<ul class="variants"><li>name : String</li><li>content : Bytes</li><li>filename : String?</li><li>content_type : String?</li></ul>
+<div class="member" id="moonfetch-part-content"><pre class="sig">fn Part::content(Self) -&gt; Bytes</pre></div>
+<div class="member" id="moonfetch-part-content-type"><pre class="sig">fn Part::content_type(Self) -&gt; String?</pre></div>
+<div class="member" id="moonfetch-part-field"><pre class="sig">fn Part::field(StringView, StringView) -&gt; Self</pre><p>A form field.</p></div>
+<div class="member" id="moonfetch-part-file"><pre class="sig">fn Part::file(StringView, StringView, Bytes, content_type? : StringView) -&gt; Self</pre><p>A file part. <code>content_type</code> defaults to <code>application/octet-stream</code>, as browsers do.</p></div>
+<div class="member" id="moonfetch-part-filename"><pre class="sig">fn Part::filename(Self) -&gt; String?</pre></div>
+<div class="member" id="moonfetch-part-name"><pre class="sig">fn Part::name(Self) -&gt; String</pre></div>
+</div>
+<div class="entry" id="moonfetch-proxy">
+<h3><span class="kind">struct</span>Proxy</h3>
+<p>A proxy a client sends its connections through.
+
+<code>http</code> and <code>https</code> are the <code>CONNECT</code> method of RFC 9110 §9.3.6 — an <code>https</code> proxy speaks TLS
+to the proxy itself — and <code>socks5</code> is RFC 1928, with the host sent as a name so the proxy
+resolves it. The user and password, when present, authenticate to the proxy: <code>Basic</code> for
+<code>CONNECT</code>, username and password for SOCKS5.</p>
+<pre class="sig">struct Proxy {</pre>
+<ul class="variants"><li>scheme : String</li><li>host : String</li><li>port : Int32</li><li>user : String?</li><li>password : String?</li></ul>
+<div class="member" id="moonfetch-proxy-parse"><pre class="sig">fn Proxy::parse(StringView) -&gt; Self raise Refused</pre><p>A proxy from a URL: <code>http://user:pass@host:1080</code>, <code>socks5://host:1080</code>.</p></div>
+</div>
+<div class="entry" id="moonfetch-response">
+<h3><span class="kind">struct</span>Response</h3>
+<p>A response, read whole. Header names are lower case, as HTTP/2 writes them, and keep the
+order they arrived in.</p>
+<pre class="sig">struct Response {</pre>
+<ul class="variants"><li>status : Int32</li><li>reason : String</li><li>version : String</li><li>headers : Array[(String, String)]</li><li>url : String</li><li>body : Bytes</li></ul>
+<div class="member" id="moonfetch-response-checked"><pre class="sig">fn Response::checked(Self) -&gt; Self raise Refused</pre><p>The response itself, or <code>Status</code> for a 4xx or 5xx, as reqwest's <code>error_for_status</code> does.</p></div>
+<div class="member" id="moonfetch-response-header"><pre class="sig">fn Response::header(Self, StringView) -&gt; String?</pre><p>The first value of the header <code>name</code>, matched without regard to case.</p></div>
+<div class="member" id="moonfetch-response-is-success"><pre class="sig">fn Response::is_success(Self) -&gt; Bool</pre><p>Whether the status is 2xx.</p></div>
+<div class="member" id="moonfetch-response-json"><pre class="sig">fn Response::json(Self) -&gt; @json.Json raise @json.ParseError</pre><p>The body parsed as JSON.</p></div>
+<div class="member" id="moonfetch-response-text"><pre class="sig">fn Response::text(Self) -&gt; String</pre><p>The body as UTF-8 text; a malformed sequence reads as U+FFFD.</p></div>
+<div class="member" id="moonfetch-response-values"><pre class="sig">fn Response::values(Self, StringView) -&gt; Array[String]</pre><p>Every value of the header <code>name</code>, in order: what <code>set-cookie</code> needs.</p></div>
+</div>
+<div class="entry" id="moonfetch-source">
+<h3><span class="kind">struct</span>Source</h3>
+<p>A request body that is not known when the request is made: the steps are called as the
+connection has room for more.</p>
+<pre class="sig">struct Source {</pre>
+<ul class="variants"><li>length : Int64?</li><li>step : async () -&gt; Bytes?</li></ul>
+<p>Implements <code>Eq</code>.</p>
+<div class="member" id="moonfetch-source-length"><pre class="sig">fn Source::length(Self) -&gt; Int64?</pre><p>The length the source promises, when it promises one.</p></div>
+<div class="member" id="moonfetch-source-new"><pre class="sig">fn Source::new(async () -&gt; Bytes?) -&gt; Self</pre><p>A body whose length is not known in advance; HTTP/1.1 sends it chunked, HTTP/2 as data
+frames.</p></div>
+<div class="member" id="moonfetch-source-sized"><pre class="sig">fn Source::sized(Int64, async () -&gt; Bytes?) -&gt; Self</pre><p>A body of exactly <code>length</code> octets: HTTP/1.1 and HTTP/2 both declare the length, so no
+chunking and no close-delimited body. A source that ends early or runs long fails the
+request.</p></div>
+</div>
+<div class="entry" id="moonfetch-stream">
+<h3><span class="kind">struct</span>Stream</h3>
+<p>A response whose body is read a piece at a time, for a body too large to hold or one that
+never ends: a server-sent event feed, a download that is written as it comes.
+
+One task reads one stream. <code>close</code> gives up the rest; a program that just drops it leaves
+the exchange unfinished until the client is closed.</p>
+<pre class="sig">struct Stream {</pre>
+<ul class="variants"><li>// private fields</li></ul>
+<div class="member" id="moonfetch-stream-close"><pre class="sig">fn Stream::close(Self) -&gt; Unit</pre><p>Give up the rest of the body: an HTTP/2 stream is reset, an HTTP/1.1 connection is closed.</p></div>
+<div class="member" id="moonfetch-stream-header"><pre class="sig">fn Stream::header(Self, StringView) -&gt; String?</pre><p>The first value of the header <code>name</code>, matched without regard to case.</p></div>
+<div class="member" id="moonfetch-stream-headers"><pre class="sig">fn Stream::headers(Self) -&gt; Array[(String, String)]</pre></div>
+<div class="member" id="moonfetch-stream-reason"><pre class="sig">fn Stream::reason(Self) -&gt; String</pre></div>
+<div class="member" id="moonfetch-stream-status"><pre class="sig">fn Stream::status(Self) -&gt; Int32</pre></div>
+<div class="member" id="moonfetch-stream-url"><pre class="sig">fn Stream::url(Self) -&gt; String</pre></div>
+<div class="member" id="moonfetch-stream-version"><pre class="sig">fn Stream::version(Self) -&gt; String</pre><p>Empty on this host: it does not say which version answered.</p></div>
+</div>
+<div class="entry" id="moonfetch-wire">
+<h3><span class="kind">struct</span>Wire</h3>
+<p>How a request would go on the wire: the version that would carry it, and the pieces it is
+written as, in order.
+
+The pieces of an HTTP/1.1 request are its head and then its body; those of an HTTP/2 one are
+the connection preface, this side's settings, and then one entry per frame, labelled with the
+frame's type and the flags it carries.</p>
+<pre class="sig">struct Wire {</pre>
+<ul class="variants"><li>version : String</li><li>pieces : Array[(String, Bytes)]</li></ul>
+</div>
+</section>
+<section class="band" id="ws-top">
+<div class="band-head"><h2>ws</h2><span class="route">moonbitstack/moonfetch/ws</span></div>
+<p>A WebSocket client over ws and wss, on the same connections and TLS settings as HTTP.</p>
+<div class="entry" id="ws-refused">
+<h3><span class="kind">suberror</span>Refused</h3>
+<p>What the WebSocket client refuses.</p>
+<pre class="sig">suberror Refused {</pre>
+<ul class="variants"><li>Handshake(status~ : Int32, reason~ : String)</li><li>Protocol(String)</li></ul>
+</div>
+<div class="entry" id="ws-message">
+<h3><span class="kind">enum</span>Message</h3>
+<p>A message on a WebSocket.</p>
+<pre class="sig">enum Message {</pre>
+<ul class="variants"><li>Text(String)</li><li>Binary(Bytes)</li><li>Close(status~ : Int32, reason~ : Bytes)</li></ul>
+</div>
+<div class="entry" id="ws-websocket">
+<h3><span class="kind">struct</span>WebSocket</h3>
+<p>A WebSocket, open and ready.</p>
+<pre class="sig">struct WebSocket {</pre>
+<ul class="variants"><li>// private fields</li></ul>
+<div class="member" id="ws-websocket-is-closed"><pre class="sig">fn WebSocket::is_closed(Self) -&gt; Bool</pre><p>Whether the connection has been closed.</p></div>
+<div class="member" id="ws-websocket-protocol"><pre class="sig">fn WebSocket::protocol(Self) -&gt; String?</pre><p>The subprotocol the server chose, if any.</p></div>
+</div>
+</section>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <div class="page">
+        <div class="cols">
+          <div>
+            <h4>moonfetch</h4>
+            <p class="about">
+              An HTTP and WebSocket client for MoonBit, on native, wasm and the browser.
+              Apache-2.0.
+            </p>
+          </div>
+          <div>
+            <h4>Pages</h4>
+            <ul>
+              <li><a href="./guide.html">Guide</a></li>
+              <li><a href="./api.html">API reference</a></li>
+              <li><a href="./showcase.html">Showcase</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Elsewhere</h4>
+            <ul>
+              <li><a href="https://github.com/moonbitstack/moonfetch">GitHub</a></li>
+              <li><a href="https://mooncakes.io/docs/moonbitstack/moonfetch">mooncakes</a></li>
+              <li>
+                <a href="https://github.com/moonbitstack/moonfetch/blob/master/LICENSE"
+                  >Apache-2.0</a
+                >
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4>Generated</h4>
+            <ul>
+              <li><a href="https://github.com/moonbitstack/moonfetch/blob/master/scripts/gen_api.py">gen_api.py</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="meta">
+          <span>© 2026 Leo Cheng</span>
+          <span class="tick"></span>
+          <span>RFC 9110 · 9112 · 9113 · 9114 · 6455</span>
+        </div>
+      </div>
+    </footer>
+
+    <script src="./assets/site.js"></script>
+  </body>
+</html>

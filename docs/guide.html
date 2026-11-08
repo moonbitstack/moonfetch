@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Guide — moonfetch</title>
+    <meta
+      name="description"
+      content="From one request to a kept client, streamed bodies, HTTP/3 and WebSocket, with the octets each step writes."
+    />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/site.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <a class="mark" href="./index.html">moonfetch</a>
+      <nav>
+        <a href="./index.html">Home</a>
+        <a href="./guide.html" class="on">Guide</a>
+        <a href="./api.html">API</a>
+        <a href="./showcase.html">Showcase</a>
+        <a
+          class="icon"
+          href="https://github.com/moonbitstack/moonfetch"
+          aria-label="Source on GitHub"
+          title="Source on GitHub"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M9 19c-4 1.5-4-2.5-5.5-3M15 21v-3.9a3.4 3.4 0 0 0-1-2.6c3-.3 6.1-1.5 6.1-6.8a5.3 5.3 0 0 0-1.5-3.7 4.9 4.9 0 0 0-.1-3.7s-1.2-.4-3.9 1.4a13.3 13.3 0 0 0-7.1 0C4.8.9 3.6 1.3 3.6 1.3a4.9 4.9 0 0 0-.1 3.7A5.3 5.3 0 0 0 2 8.7c0 5.2 3.1 6.4 6.1 6.8a3.4 3.4 0 0 0-1 2.6V21"
+            />
+          </svg>
+        </a>
+        <button class="icon" data-theme-toggle type="button" aria-label="Switch theme">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="4.2" />
+            <path d="M12 2.4v2.2M12 19.4v2.2M2.4 12h2.2M19.4 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6" />
+          </svg>
+        </button>
+      </nav>
+    </header>
+
+    <main class="page">
+      <section class="stop" id="install">
+        <div class="node"></div>
+        <h2><span class="num">01</span>Install</h2>
+        <p class="lead">
+          One module, two packages: <code>moonbitstack/moonfetch</code> for HTTP, and
+          <code>moonbitstack/moonfetch/ws</code> for WebSocket.
+        </p>
+        <pre class="code"><code>moon add moonbitstack/moonfetch</code></pre>
+        <p class="prose">
+          Then import what a program needs. <code>Method</code> comes from the HTTP library this
+          one builds on; everything else is under <code>moonfetch</code>.
+        </p>
+        <pre class="code" data-lang="mbt"><code>import {
+  "moonbitstack/moonfetch",
+  "moonbitstack/moonhttp/method",
+}</code></pre>
+      </section>
+
+      <section class="stop" id="one">
+        <div class="node"></div>
+        <h2><span class="num">02</span>One request</h2>
+        <p class="lead">
+          The one-shot functions make a client, use it once, and close it. Fine for a script; a
+          program that makes more than a few requests keeps one instead.
+        </p>
+        <pre class="code" data-lang="mbt"><code>let page = @moonfetch.get("https://example.com/")
+assert_eq(page.status, 200)
+assert_eq(page.is_success(), true)
+let text = page.text()</code></pre>
+        <p class="prose">
+          <code>text()</code> decodes the body as UTF-8, <code>json()</code> parses it,
+          <code>body</code> is the octets as they came, and <code>header(name)</code> reads a field
+          without regard to case. <code>checked()</code> turns a 4xx or 5xx into a
+          <code>Refused::Status</code> instead of a value to remember to test.
+        </p>
+      </section>
+
+      <section class="stop" id="client">
+        <div class="node"></div>
+        <h2><span class="num">03</span>A client</h2>
+        <p class="lead">
+          A <code>Client</code> keeps idle HTTP/1.1 connections per origin and one HTTP/2 or HTTP/3
+          connection per origin, which carries every request to it. Close it when the program is
+          done with it.
+        </p>
+        <pre class="code" data-lang="mbt"><code>let api = @moonfetch.Client::new(
+  base_url="https://api.example.com/v1",
+  headers=[("authorization", "Bearer token")],
+  timeout=Some(10000),
+)
+defer api.close()</code></pre>
+        <p class="prose">
+          <code>base_url</code> is the prefix relative URLs are joined to, and its path is kept:
+          <code>/users</code> under <code>https://a.example/api</code> is
+          <code>https://a.example/api/users</code>. <code>headers</code> go on every request, and a
+          <code>headers</code> given for one request replaces the client's of the same name.
+        </p>
+        <pre class="code" data-lang="mbt"><code>let user = api.get("/users/7").checked()
+let made = api.post("/users", body=@moonfetch.Body::Json({ "name": "moon" }))
+let listed = api.get("/users", query=[("page", "2"), ("q", "two words")])</code></pre>
+        <p class="prose">
+          <code>query</code> is added to the URL's own query, encoded the way a form is. The
+          methods that carry a body — <code>post</code>, <code>put</code>,
+          <code>patch</code> — take <code>body=</code>; the others do not.
+        </p>
+      </section>
+
+      <section class="stop" id="bodies">
+        <div class="node"></div>
+        <h2><span class="num">04</span>Bodies</h2>
+        <p class="lead">
+          A body is one value. The content type follows from it unless a header names one, so a
+          request cannot carry two bodies for the library to choose between.
+        </p>
+        <div class="rows">
+          <div class="row">
+            <span class="n">a</span><span class="k">Text</span>
+            <span class="v"><code>text/plain; charset=utf-8</code></span>
+          </div>
+          <div class="row">
+            <span class="n">b</span><span class="k">Bytes</span>
+            <span class="v"><code>application/octet-stream</code></span>
+          </div>
+          <div class="row">
+            <span class="n">c</span><span class="k">Json</span>
+            <span class="v"><code>application/json</code>, written without spaces</span>
+          </div>
+          <div class="row">
+            <span class="n">d</span><span class="k">Form</span>
+            <span class="v"><code>application/x-www-form-urlencoded</code>, in the order given</span>
+          </div>
+          <div class="row">
+            <span class="n">e</span><span class="k">Multipart</span>
+            <span class="v">RFC 7578, with a boundary no part contains</span>
+          </div>
+          <div class="row">
+            <span class="n">f</span><span class="k">Stream</span>
+            <span class="v">produced while the request goes out, chunked on HTTP/1.1</span>
+          </div>
+        </div>
+        <pre class="code" data-lang="mbt"><code>let form = api.post("/login", body=@moonfetch.Body::Form([("user", "moon"), ("pass", "tide")]))
+let file = @moonfetch.Part::file("doc", "notes.txt", b"hello file", content_type="text/plain")
+let uploaded = api.post("/upload", body=@moonfetch.Body::Multipart([
+  @moonfetch.Part::field("owner", "moon"),
+  file,
+]))</code></pre>
+        <p class="prose">
+          A <code>Source</code> is a body that does not exist yet. A <code>Source::sized</code>
+          declares its length; a <code>Source::new</code> does not, and goes out chunked.
+        </p>
+        <pre class="code" data-lang="mbt"><code>let mut sent = 0
+let piecewise = @moonfetch.Source::sized(2048, () =&gt; {
+  guard sent &lt; 2048 else { return None }
+  sent = sent + 1024
+  Some(Bytes::make(1024, b'x'))
+})
+let stored = api.put("/blob", body=@moonfetch.Body::Stream(piecewise))</code></pre>
+      </section>
+
+      <section class="stop" id="streaming">
+        <div class="node"></div>
+        <h2><span class="num">05</span>Streaming</h2>
+        <p class="lead">
+          <code>stream</code> sends the request, follows redirects, and returns as soon as the head
+          is in. Each <code>next</code> gives a piece of the body, or the end with its trailers.
+        </p>
+        <pre class="code" data-lang="mbt"><code>let feed = api.stream(@method.Method::Get, "/events")
+for ;; {
+  match feed.next() {
+    Some(@moonfetch.Data(bytes)) =&gt; println(bytes.length())
+    Some(@moonfetch.End(trailers)) =&gt; {
+      println(trailers.length())
+      break
+    }
+    None =&gt; break
+  }
+}</code></pre>
+        <p class="prose">
+          A stream is not bounded — that is what makes it a stream — so a caller that reads one to
+          the end passes its own bound: <code>feed.bytes(limit=1048576)</code>. A buffered request
+          uses <code>Limits::body</code> and stops while the octets are still arriving, not after.
+          Streaming does not ask for compression: a coding would have to be undone on the fly.
+        </p>
+      </section>
+
+      <section class="stop" id="rules">
+        <div class="node"></div>
+        <h2><span class="num">06</span>Redirects, timeouts and refusals</h2>
+        <p class="lead">
+          Ten redirects by default, five seconds for the whole exchange including them, and one
+          error type for what the library itself refuses.
+        </p>
+        <pre class="code" data-lang="mbt"><code>let seen = api.get("/redirect/3")
+assert_eq(seen.url, "https://api.example.com/v1/redirect/0")
+let not_followed = api.get("/redirect/3", redirects=0)
+assert_eq(not_followed.status, 302)</code></pre>
+        <p class="prose">
+          A 303, and a 301 or 302 answering a POST, become a GET without a body, as browsers do. A
+          307 and a 308 keep both. <code>authorization</code> and <code>cookie</code> are dropped
+          when a redirect leaves the origin — a jar supplies the cookies the new one has.
+        </p>
+        <pre class="code" data-lang="mbt"><code>let outcome = try {
+  ignore(api.get("/slow", timeout=200))
+  "answered"
+} catch {
+  @moonfetch.Refused::Timeout(limit~) =&gt; "gave up after \{limit} ms"
+  @moonfetch.Refused::Status(status~, ..) =&gt; "answered \{status}"
+  @moonfetch.Refused::Redirects(limit~) =&gt; "more than \{limit} redirects"
+  @moonfetch.Refused::Url(why) =&gt; why
+  @moonfetch.Refused::Exceeded(limit~, ..) =&gt; "body over \{limit} octets"
+  @moonfetch.Refused::Reset(code~) =&gt; "stream reset, HTTP/2 code \{code}"
+  @moonfetch.Refused::Proxy(why) =&gt; why
+  other =&gt; other.to_string()
+}</code></pre>
+        <p class="prose">
+          A socket, TLS or framing error passes through as itself rather than wrapped: the reason
+          is in the lower layer's error, and hiding it would lose what it says.
+        </p>
+      </section>
+
+      <section class="stop" id="cookies">
+        <div class="node"></div>
+        <h2><span class="num">07</span>Cookies and proxies</h2>
+        <p class="lead">
+          A <code>Jar</code> follows RFC 6265bis: domain and path matching, expiry, the prefix
+          rules, the Public Suffix List. One jar may be shared by several clients and by tasks.
+        </p>
+        <pre class="code" data-lang="mbt" data-native=""><code>let jar = @moonfetch.Jar::new()
+let browser = @moonfetch.Client::new(jar~)
+defer browser.close()
+ignore(browser.get("https://example.com/login"))
+ignore(browser.get("https://example.com/account"))</code></pre>
+        <pre class="code" data-lang="mbt" data-native=""><code>let proxied = @moonfetch.Client::new(
+  proxy=@moonfetch.Proxy::parse("http://user:pass@proxy.internal:3128"),
+)
+defer proxied.close()</code></pre>
+        <p class="prose">
+          An <code>http</code> request through an HTTP proxy goes in absolute form; an
+          <code>https</code> one is tunnelled with <code>CONNECT</code>. A
+          <code>socks5://</code> proxy gets the host as a name, so the proxy resolves it. Both
+          carry a username and password when the URL has one. These two blocks are native and wasm
+          only: a browser owns its cookies and its proxy settings.
+        </p>
+      </section>
+
+      <section class="stop" id="h3">
+        <div class="node"></div>
+        <h2><span class="num">08</span>HTTP/3</h2>
+        <p class="lead">
+          <code>http3=true</code> speaks HTTP/3 over QUIC, for <code>https</code> origins only —
+          there is no HTTP/3 in the clear.
+        </p>
+        <pre class="code" data-lang="mbt" data-native=""><code>let quic = @moonfetch.Client::new(http3=true, timeout=Some(10000))
+defer quic.close()
+let trace = quic.get("https://cloudflare.com/cdn-cgi/trace")
+assert_eq(trace.version, "HTTP/3")</code></pre>
+        <p class="prose">
+          One QUIC connection carries every exchange to an origin, one stream each, so requests
+          overlap as they do on HTTP/2. An origin that says nothing on the datagram within three
+          seconds is spoken to over TCP from then on, and the program does not see the attempt.
+        </p>
+      </section>
+
+      <section class="stop" id="ws">
+        <div class="node"></div>
+        <h2><span class="num">09</span>WebSocket</h2>
+        <p class="lead">
+          <code>moonfetch/ws</code> shares the client's TLS roots, proxy and timeouts, so a
+          <code>wss</code> socket is set up exactly as an <code>https</code> request is.
+        </p>
+        <pre class="code" data-lang="mbt" data-native=""><code>let chat = @moonfetch.Client::new(timeout=Some(30000))
+defer chat.close()
+let socket = @ws.connect(chat, "wss://example.com/chat", protocols=["chat"])
+socket.send_text("hello")
+while socket.recv() is Some(message) {
+  match message {
+    @ws.Text(text) =&gt; println(text)
+    @ws.Binary(bytes) =&gt; println(bytes.length())
+    @ws.Close(status~, ..) =&gt; {
+      println(status)
+      break
+    }
+  }
+}
+socket.close(status=1000)</code></pre>
+        <p class="prose">
+          Pings are answered and fragmented messages put back together inside <code>recv</code>, so
+          a caller sees messages, not frames.
+        </p>
+      </section>
+
+      <section class="stop" id="bytes">
+        <div class="node"></div>
+        <h2><span class="num">10</span>The octets</h2>
+        <p class="lead">
+          <code>wire</code> and <code>frames</code> write a request the way the transports do,
+          without sending it — for a log, a test, or a page like this one.
+        </p>
+        <pre class="code" data-lang="mbt" data-native=""><code>let sent = @moonfetch.wire(@method.Method::Get, "https://example.com/a?b=1")
+assert_eq(sent.version, "HTTP/1.1")
+assert_eq(@utf8.decode_lossy(sent.pieces[0].1[:]), "GET /a?b=1 HTTP/1.1\r\nhost: example.com\r\nuser-agent: moonfetch\r\naccept: */*\r\n\r\n")</code></pre>
+        <p class="out">GET /a?b=1 HTTP/1.1
+host: example.com
+user-agent: moonfetch
+accept: */*</p>
+        <p class="prose">
+          <code>frames</code> gives the same request as HTTP/2 writes it: the connection preface,
+          this side's settings, then one entry per frame, labelled with its type and flags. The
+          <a href="./showcase.html">showcase</a> does this for whatever request you type.
+        </p>
+      </section>
+
+      <section class="stop" id="browser">
+        <div class="node"></div>
+        <h2><span class="num">11</span>In a browser</h2>
+        <p class="lead">
+          The same package has a second transport, picked at build time: the host's
+          <code>fetch</code>. Nothing in a program changes; what a host does not have is not
+          offered.
+        </p>
+        <div class="rows">
+          <div class="row">
+            <span class="n">a</span><span class="k">Native, wasm</span>
+            <span class="v"><code>Client::new</code> takes <code>tls?</code>, <code>proxy?</code>, <code>jar?</code>, <code>http2~</code>, <code>h2c~</code>, <code>compression~</code>, <code>idle~</code></span>
+          </div>
+          <div class="row">
+            <span class="n">b</span><span class="k">js</span>
+            <span class="v"><code>Client::new</code> takes <code>credentials~</code>; connections, cookies and proxies are the host's</span>
+          </div>
+          <div class="row">
+            <span class="n">c</span><span class="k">Version</span>
+            <span class="v"><code>Response::version</code> is empty on js: a browser does not say which version answered</span>
+          </div>
+          <div class="row">
+            <span class="n">d</span><span class="k">Redirects</span>
+            <span class="v">a browser follows a cross-origin redirect itself, and does not show the chain</span>
+          </div>
+        </div>
+        <pre class="code" data-lang="mbt"><code>let web = @moonfetch.Client::new(base_url="https://api.example.com", timeout=Some(8000))
+let feed = web.get("/feed")</code></pre>
+        <p class="prose">
+          <code>credentials</code> is how a js client says what the host may do with the cookies it
+          keeps: <code>Client::new(credentials=Credentials::Include)</code>. <code>close()</code>
+          exists on both, and does nothing on js: the host owns the connections. A program written for one host reads the same on the other, as long as it
+          stays inside what both offer.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <div class="page">
+        <div class="cols">
+          <div>
+            <h4>moonfetch</h4>
+            <p class="about">
+              An HTTP and WebSocket client for MoonBit, on native, wasm and the browser.
+              Apache-2.0.
+            </p>
+          </div>
+          <div>
+            <h4>Pages</h4>
+            <ul>
+              <li><a href="./guide.html">Guide</a></li>
+              <li><a href="./api.html">API reference</a></li>
+              <li><a href="./showcase.html">Showcase</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Elsewhere</h4>
+            <ul>
+              <li><a href="https://github.com/moonbitstack/moonfetch">GitHub</a></li>
+              <li><a href="https://mooncakes.io/docs/moonbitstack/moonfetch">mooncakes</a></li>
+              <li>
+                <a href="https://github.com/moonbitstack/moonfetch/blob/master/LICENSE"
+                  >Apache-2.0</a
+                >
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4>On this page</h4>
+            <ul>
+              <li><a href="#install">Install</a></li>
+              <li><a href="#client">A client</a></li>
+              <li><a href="#streaming">Streaming</a></li>
+              <li><a href="#h3">HTTP/3</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="meta">
+          <span>© 2026 Leo Cheng</span>
+          <span class="tick"></span>
+          <span>RFC 9110 · 9112 · 9113 · 9114 · 6455</span>
+        </div>
+      </div>
+    </footer>
+
+    <script src="./assets/site.js"></script>
+  </body>
+</html>

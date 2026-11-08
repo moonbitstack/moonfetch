@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Showcase — moonfetch</title>
+    <meta
+      name="description"
+      content="A request written before your eyes: the HTTP/1.1 octets and the HTTP/2 frames this library builds, and a game about what a lost packet does to three transports."
+    />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/site.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <a class="mark" href="./index.html">moonfetch</a>
+      <nav>
+        <a href="./index.html">Home</a>
+        <a href="./guide.html">Guide</a>
+        <a href="./api.html">API</a>
+        <a href="./showcase.html" class="on">Showcase</a>
+        <a
+          class="icon"
+          href="https://github.com/moonbitstack/moonfetch"
+          aria-label="Source on GitHub"
+          title="Source on GitHub"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M9 19c-4 1.5-4-2.5-5.5-3M15 21v-3.9a3.4 3.4 0 0 0-1-2.6c3-.3 6.1-1.5 6.1-6.8a5.3 5.3 0 0 0-1.5-3.7 4.9 4.9 0 0 0-.1-3.7s-1.2-.4-3.9 1.4a13.3 13.3 0 0 0-7.1 0C4.8.9 3.6 1.3 3.6 1.3a4.9 4.9 0 0 0-.1 3.7A5.3 5.3 0 0 0 2 8.7c0 5.2 3.1 6.4 6.1 6.8a3.4 3.4 0 0 0-1 2.6V21"
+            />
+          </svg>
+        </a>
+        <button class="icon" data-theme-toggle type="button" aria-label="Switch theme">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="4.2" />
+            <path d="M12 2.4v2.2M12 19.4v2.2M2.4 12h2.2M19.4 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6" />
+          </svg>
+        </button>
+      </nav>
+    </header>
+
+    <main class="page">
+      <section class="stop" id="anatomy">
+        <div class="node"></div>
+        <h2><span class="num">01</span>The anatomy of a request</h2>
+        <p class="lead">
+          Type a request; the library that would send it writes it out. Both panels are produced by
+          <code>moonfetch</code> compiled to JavaScript and running in this page — the same
+          <code>wire</code> and <code>frames</code> a program calls.
+        </p>
+
+        <div class="lab">
+          <form class="form" data-form onsubmit="return false">
+            <div class="field">
+              <label for="verb">Method</label>
+              <div class="two">
+                <select id="verb" data-verb>
+                  <option>GET</option>
+                  <option>POST</option>
+                  <option>PUT</option>
+                  <option>PATCH</option>
+                  <option>DELETE</option>
+                  <option>HEAD</option>
+                  <option>OPTIONS</option>
+                </select>
+                <input
+                  id="url"
+                  data-url
+                  value="https://httpbin.org/anything"
+                  spellcheck="false"
+                  aria-label="URL"
+                />
+              </div>
+            </div>
+            <div class="field">
+              <label for="headers">Fields, one to a line</label>
+              <textarea id="headers" data-headers spellcheck="false">accept: application/json</textarea>
+            </div>
+            <div class="field">
+              <label for="body">Body</label>
+              <textarea id="body" data-body spellcheck="false" placeholder="empty"></textarea>
+            </div>
+            <button class="btn solid" type="button" data-send>Send it for real</button>
+            <p class="note" style="margin-top: 10px">
+              Sending asks a public echo service over the network, from this page, through this
+              library's browser host. It may be slow, and it may be refused.
+            </p>
+          </form>
+
+          <div class="panes">
+            <div class="pane">
+              <h3>HTTP/1.1 <em data-h1-size></em></h3>
+              <div class="bytes scroll"><pre data-h1></pre></div>
+            </div>
+            <div class="pane">
+              <h3>HTTP/2 <em data-h2-size></em></h3>
+              <div class="frames scroll" data-h2></div>
+            </div>
+            <div class="pane">
+              <h3>What came back</h3>
+              <div class="answer scroll" data-answer>
+                <span class="k">nothing sent yet</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="stop" id="convoy">
+        <div class="node"></div>
+        <h2><span class="num">02</span>Convoy</h2>
+        <p class="lead">
+          Ten requests, a client, a server, and a packet lost every few seconds. Switch the
+          transport and watch what one loss costs the others: on HTTP/2 the streams are meant to be
+          independent, but they share a connection, which is why HTTP/3 exists.
+        </p>
+        <div class="game-wrap">
+          <canvas id="game" width="760" height="300" aria-label="A client sending requests to a server over three lanes"></canvas>
+          <div class="game-bar">
+            <button class="btn solid" type="button" data-transport="h1">HTTP/1.1 <span class="key">1</span></button>
+            <button class="btn" type="button" data-transport="h2">HTTP/2 <span class="key">2</span></button>
+            <button class="btn" type="button" data-transport="h3">HTTP/3 <span class="key">3</span></button>
+            <button class="btn" type="button" data-play>Run <span class="key">space</span></button>
+            <span class="spacer"></span>
+            <span class="score" data-score></span>
+          </div>
+          <p class="note" data-note style="margin: 10px 0 0"></p>
+        </div>
+        <p class="prose" style="margin-top: 18px">
+          The octets at the end of the score line are the library's own count: every delivery costs
+          what <code>wire</code> or <code>frames</code> says the request weighs, so switching
+          transports changes the arithmetic as well as the traffic.
+        </p>
+      </section>
+
+      <section class="stop" id="take">
+        <div class="node"></div>
+        <h2><span class="num">03</span>What the page shows</h2>
+        <div class="rows">
+          <div class="row">
+            <span class="n">a</span><span class="k">Field order</span>
+            <span class="v"
+              >The head carries the host, then what the caller gave, then the defaults a request
+              needs. Nothing is reordered to look tidy.</span
+            >
+          </div>
+          <div class="row">
+            <span class="n">b</span><span class="k">Framing</span>
+            <span class="v"
+              >HTTP/1.1 declares a length when the body has one and chunks it when it does not;
+              HTTP/2 says the same thing with END_STREAM.</span
+            >
+          </div>
+          <div class="row">
+            <span class="n">c</span><span class="k">Field sections</span>
+            <span class="v"
+              >The HEADERS frame is HPACK, so its octets are not text: the hex is what goes out on
+              a first request, against the static table alone.</span
+            >
+          </div>
+          <div class="row">
+            <span class="n">d</span><span class="k">Loss</span>
+            <span class="v"
+              >A lost packet is recovered by the transport, not the library; what the library
+              chooses is how many exchanges share one connection.</span
+            >
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="page">
+        <div class="cols">
+          <div>
+            <h4>moonfetch</h4>
+            <p class="about">
+              An HTTP and WebSocket client for MoonBit, on native, wasm and the browser.
+              Apache-2.0.
+            </p>
+          </div>
+          <div>
+            <h4>Pages</h4>
+            <ul>
+              <li><a href="./guide.html">Guide</a></li>
+              <li><a href="./api.html">API reference</a></li>
+              <li><a href="./showcase.html">Showcase</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Elsewhere</h4>
+            <ul>
+              <li><a href="https://github.com/moonbitstack/moonfetch">GitHub</a></li>
+              <li><a href="https://mooncakes.io/docs/moonbitstack/moonfetch">mooncakes</a></li>
+              <li>
+                <a href="https://github.com/moonbitstack/moonfetch/blob/master/LICENSE"
+                  >Apache-2.0</a
+                >
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4>On this page</h4>
+            <ul>
+              <li><a href="#anatomy">Anatomy</a></li>
+              <li><a href="#convoy">Convoy</a></li>
+              <li><a href="#take">What it shows</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="meta">
+          <span>© 2026 Leo Cheng</span>
+          <span class="tick"></span>
+          <span>RFC 9110 · 9112 · 9113 · 9114 · 6455</span>
+        </div>
+      </div>
+    </footer>
+
+    <script src="./assets/site.js"></script>
+    <script src="./assets/anatomy.js"></script>
+    <script src="./assets/game.js"></script>
+  </body>
+</html>

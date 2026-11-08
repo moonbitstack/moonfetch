@@ -159,6 +159,22 @@ async fn put_kibibytes(client : @moonfetch.Client) -> Unit raise {
 A `Source` with a length declares `content-length`; without one the body is chunked on HTTP/1.1
 and unframed on HTTP/2 and HTTP/3.
 
+## Seeing the bytes
+
+`wire` and `frames` write a request the way the transports do, without sending it: for a log, a
+test, or a page that wants to show a reader what it builds.
+
+```moonbit
+let sent = @moonfetch.wire(@method.Method::Get, "https://example.com/a?b=1")
+assert_eq(sent.version, "HTTP/1.1")
+assert_eq(@utf8.decode_lossy(sent.pieces[0].1[:]), "GET /a?b=1 HTTP/1.1\r\nhost: example.com\r\nuser-agent: moonfetch\r\naccept: */*\r\n\r\n")
+```
+
+`frames` gives the same request as HTTP/2 writes it: the connection preface, this side's settings,
+and one entry per frame, each labelled with its type and flags — `HEADERS + END_STREAM`, `DATA`,
+`DATA + END_STREAM`. Both take the same `Body` a request does, so the octets are the ones that
+would go out, not a sketch of them.
+
 ## Cookies
 
 ```moonbit native

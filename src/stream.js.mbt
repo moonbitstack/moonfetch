@@ -186,7 +186,9 @@ async fn Client::open_stream(
   body : Body,
   timeout : Int32?,
 ) -> Stream {
+  // `fetch` writes the length itself, and a page may not set it either.
   let (all, payload) = prepared(body, fields)
+  let all = without(all, ["content-length"])
   let target = url.encode()
   let credentials = self.credentials.name()
   let ms = match timeout {

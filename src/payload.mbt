@@ -115,3 +115,12 @@ fn Body::payload(self : Body) -> (Payload, String?) {
     Stream(source) => (Pieces(source), None)
   }
 }
+
+///|
+/// How many octets a whole payload holds.
+fn Payload::length(self : Payload) -> Int64? {
+  match self {
+    Whole(bytes) => Some(bytes.length().to_int64())
+    Pieces(source) => source.length
+  }
+}

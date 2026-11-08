@@ -83,19 +83,6 @@ fn H3::settings(self : H3) -> Unit {
 }
 
 ///|
-/// Connection-specific fields, which HTTP/3 forbids as HTTP/2 does (RFC 9114 §4.2); the
-/// authority goes in `:authority` instead of `host`.
-fn h3_allowed(name : String) -> Bool {
-  !(name
-  is ("connection"
-  | "keep-alive"
-  | "proxy-connection"
-  | "transfer-encoding"
-  | "upgrade"
-  | "host"))
-}
-
-///|
 /// Hand a piece to the exchange it belongs to. Synchronous: the queue never blocks, so a slow
 /// reader holds its own stream shut instead of the connection.
 fn H3::give(self : H3, at : Int32, piece : Piece) -> Unit {
@@ -248,7 +235,7 @@ fn H3::open(self : H3, out : Outgoing) -> Int32 raise {
   for f in out.fields {
     let (name, value) = f.ascii()
     let lower = name.to_lower()
-    if h3_allowed(lower) {
+    if h2_carries(lower) {
       fields.push(@header.Header::of(lower, value))
     }
   }

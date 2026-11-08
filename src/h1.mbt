@@ -13,30 +13,11 @@ priv struct H1 {
 ///|
 /// Send the request and read the response head; the body is left on `H1`.
 async fn h1_open(conn : @tcp.Conn, out : Outgoing) -> (Reply, H1) {
+  // The state machine that writes the request is the one that reads the answer: it is what tells
+  // a connection that carried a whole exchange from one that did not.
   let wire = @http1.Conn::new(Client)
-  let length = out.payload.length()
-  // RFC 9110 §8.6: a method that defines a body says how long it is, even when empty.
-  let framing : @http1.Body = match length {
-    Some(n) =>
-      if n > 0 || out.verb is (Post | Put | Patch) {
-        Sized(n.to_int())
-      } else {
-        Empty
-      }
-    None => Chunked
-  }
-  // The framing decides `content-length` here; one carried in from the client would be a
-  // second, possibly different, value.
-  let fields = out.fields.filter(f => f.ascii().0.to_lower() != "content-length")
-  let head = @http1.Request::of(
-    out.verb.name(),
-    out.target,
-    fields~,
-    host=out.authority,
-    body=framing,
-  )
   let sent = Buffer()
-  sent.write_bytes(wire.send(Request(head)))
+  sent.write_bytes(h1_head(wire, out))
   match out.payload {
     Whole(bytes) =>
       if bytes.length() > 0 {

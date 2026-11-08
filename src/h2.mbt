@@ -91,19 +91,6 @@ async fn H2::flush(self : H2) -> Unit {
 }
 
 ///|
-/// Connection-specific fields, which HTTP/2 forbids (RFC 9113 §8.2.2); the authority goes in
-/// `:authority` instead of `host`.
-fn h2_allowed(name : String) -> Bool {
-  !(name
-  is ("connection"
-  | "keep-alive"
-  | "proxy-connection"
-  | "transfer-encoding"
-  | "upgrade"
-  | "host"))
-}
-
-///|
 /// Hand an event to the stream it belongs to. Synchronous: the queues never block, so a slow
 /// reader holds its own window shut instead of the whole connection.
 fn H2::give(self : H2, id : Int32, piece : Piece) -> Unit {
@@ -267,7 +254,7 @@ fn H2::open(self : H2, out : Outgoing) -> Int32 raise {
   for f in out.fields {
     let (name, value) = f.ascii()
     let lower = name.to_lower()
-    if h2_allowed(lower) {
+    if h2_carries(lower) {
       fields.push(@header.Header::of(lower, value))
     }
   }

@@ -288,22 +288,7 @@ async fn Client::pack(
   body : Body,
   decode~ : Bool,
 ) -> (Outgoing, Bool) {
-  let origin = Origin::of(url)
-  let (payload, kind) = body.payload()
-  let all = fields.copy()
-  if kind is Some(k) && !has(all, "content-type") {
-    all.push(("content-type", k))
-  }
-  // A length this side knows is declared; HTTP/1.1 writes its own from the framing.
-  if payload.length() is Some(n) && !has(all, "content-length") {
-    all.push(("content-length", n.to_string()))
-  }
-  if !has(all, "user-agent") {
-    all.push(("user-agent", "moonfetch"))
-  }
-  if !has(all, "accept") {
-    all.push(("accept", "*/*"))
-  }
+  let (all, payload) = prepared(body, fields)
   if self.jar is Some(jar) && !has(all, "cookie") {
     let kept = jar.cookies(url)
     if kept != "" {
@@ -314,23 +299,12 @@ async fn Client::pack(
   if decoding {
     all.push(("accept-encoding", "gzip, deflate"))
   }
-  let path = if url.path == "" { "/" } else { url.path }
-  let target = match url.query {
-    Some(q) => path + "?" + q
-    None => path
-  }
+  let out = going(verb, url, all, payload)
   // A cleartext request through an HTTP proxy is sent in absolute form (RFC 9112 §3.2.2).
-  let target = match self.proxy {
-    Some(proxy) if proxy.absolute() && origin.scheme == "http" => url.encode()
-    _ => target
-  }
-  let out = {
-    verb,
-    scheme: origin.scheme,
-    authority: origin.authority(),
-    target,
-    fields: all.map(f => @header.Header::of(f.0, f.1)),
-    payload,
+  let out = match self.proxy {
+    Some(proxy) if proxy.absolute() && out.scheme == "http" =>
+      { ..out, target: url.encode(), }
+    _ => out
   }
   (out, decoding)
 }

@@ -13,6 +13,8 @@ import {
 // Values
 pub async fn delete(StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
 
+pub fn frames(@method.Method, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], body? : Body) -> Wire raise
+
 pub async fn get(StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
 
 pub async fn head(StringView, query? : Array[(String, String)], headers? : Array[(String, String)], timeout? : Int32, redirects? : Int32) -> Response
@@ -34,6 +36,8 @@ pub let redirects : Int32
 pub async fn request(@method.Method, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], body? : Body, timeout? : Int32, redirects? : Int32) -> Response
 
 pub let timeout : Int32
+
+pub fn wire(@method.Method, StringView, query? : Array[(String, String)], headers? : Array[(String, String)], body? : Body) -> Wire raise
 
 // Errors
 #derive(Eq, @debug.Debug)
@@ -175,6 +179,11 @@ pub fn Stream::status(Self) -> Int32
 pub async fn Stream::text(Self, limit? : Int32) -> String
 pub fn Stream::url(Self) -> String
 pub fn Stream::version(Self) -> String
+
+pub(all) struct Wire {
+  version : String
+  pieces : Array[(String, Bytes)]
+}
 
 // Type aliases
 

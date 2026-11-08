@@ -87,24 +87,6 @@ pub fn Client::close(_self : Client) -> Unit {
 }
 
 ///|
-/// The headers a request goes out with. Those the host decides — `content-length`, `host`,
-/// `accept-encoding`, and the ones a page may not set — are left to it.
-fn prepared(
-  body : Body,
-  fields : Array[(String, String)],
-) -> (Array[(String, String)], Payload) {
-  let (payload, kind) = body.payload()
-  let all = fields.copy()
-  if kind is Some(k) && !has(all, "content-type") {
-    all.push(("content-type", k))
-  }
-  if !has(all, "accept") {
-    all.push(("accept", "*/*"))
-  }
-  (all, payload)
-}
-
-///|
 /// One exchange on the host's `fetch`, with this request's timeout around it.
 async fn Client::send(
   self : Client,
@@ -114,7 +96,9 @@ async fn Client::send(
   body : Body,
   timeout : Int32?,
 ) -> Response {
+  // `fetch` writes the length itself, and a page may not set it either.
   let (all, payload) = prepared(body, fields)
+  let all = without(all, ["content-length"])
   let target = url.encode()
   let credentials = self.credentials.name()
   let run = () => {

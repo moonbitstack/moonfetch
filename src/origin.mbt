@@ -28,6 +28,16 @@ fn Origin::key(self : Origin) -> String {
 }
 
 ///|
+/// The host and port as a request names them: the port left out when it is the scheme's own.
+fn Origin::authority(self : Origin) -> String {
+  let host = if self.host.contains(":") { "[\{self.host}]" } else { self.host }
+  match (self.scheme, self.port) {
+    ("http", 80) | ("https", 443) => host
+    _ => "\{host}:\{self.port}"
+  }
+}
+
+///|
 /// The absolute URL a request goes to: joined to `base`, with `query` added to any query the
 /// URL already has.
 fn located(

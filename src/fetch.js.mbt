@@ -163,7 +163,7 @@ fn fed(source : Source) -> JsBody {
 
 ///|
 /// The body as `fetch` takes it: octets for a whole payload, a fed pipe for a streamed one.
-fn wire(payload : Payload) -> JsBody {
+fn carried(payload : Payload) -> JsBody {
   match payload {
     Whole(bytes) =>
       if bytes.length() == 0 {
@@ -191,7 +191,7 @@ async fn ask(
       url,
       verb.name(),
       sent(fields),
-      wire(payload),
+      carried(payload),
       redirect,
       credentials,
       signal,

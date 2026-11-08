@@ -1,0 +1,20 @@
+// The site's engine: this library built to JavaScript, so that the pages call it rather than
+// describe it. Strings and JSON in, JSON out. It exists for the site, so it is not one of the
+// library's packages and its API is not in the reference. Only js has a `Promise` to hand back.
+import {
+  "moonbitstack/moonfetch",
+  "moonbitstack/moonhttp/method",
+  "moonbitlang/async",
+  "moonbitlang/async/js_async",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
+}
+
+warnings = "-29"
+
+options(
+  targets: {
+    "main.mbt": [ "js" ],
+  },
+  link: { "js": { "exports": [ "preview", "send", "costs" ], "format": "esm" } },
+)

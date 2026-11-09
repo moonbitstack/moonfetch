@@ -1,6 +1,6 @@
 name = "moonbitstack/moonfetch"
 
-version = "0.1.6"
+version = "0.1.7"
 
 readme = "README.md"
 
@@ -72,16 +72,16 @@ source = "src"
 supported_targets = [ "native", "wasm", "js" ]
 
 import {
-  "moonbitstack/moonnet@0.1.11",
-  "moonbitstack/moontls@0.9.15",
-  "moonbitstack/mooncred@0.6.10",
-  "moonbitstack/moonhttp@0.15.9",
-  "moonbitstack/moonurl@0.2.5",
-  "moonbitstack/moonzip@0.3.7",
-  "moonbitstack/moonbase@0.4.3",
-  "moonbitstack/moonmime@0.2.3",
-  "moonbitstack/moondate@0.1.5",
-  "moonbitstack/mooncrypt@0.4.12",
-  "moonbitstack/moonseed@0.1.1",
+  "moonbitstack/moonnet@0.1.12",
+  "moonbitstack/moontls@0.9.16",
+  "moonbitstack/mooncred@0.6.13",
+  "moonbitstack/moonhttp@0.15.10",
+  "moonbitstack/moonurl@0.2.6",
+  "moonbitstack/moonzip@0.3.8",
+  "moonbitstack/moonbase@0.4.4",
+  "moonbitstack/moonmime@0.2.4",
+  "moonbitstack/moondate@0.1.6",
+  "moonbitstack/mooncrypt@0.4.14",
+  "moonbitstack/moonseed@0.1.3",
   "moonbitlang/async@0.22.5",
 }

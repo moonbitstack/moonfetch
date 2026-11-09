@@ -69,8 +69,6 @@ description = "An HTTP and WebSocket client for MoonBit, on native, wasm and the
 
 source = "src"
 
-supported_targets = [ "native", "wasm", "js" ]
-
 import {
   "moonbitstack/moonnet@0.1.12",
   "moonbitstack/moontls@0.9.16",

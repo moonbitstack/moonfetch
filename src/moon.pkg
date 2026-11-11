@@ -52,6 +52,7 @@ import {
   "moonbitstack/moonzip/zlib",
   "moonbitstack/moonzip/deflate",
   "moonbitlang/async",
+  "moonbitlang/async/socket",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
 } for "test"

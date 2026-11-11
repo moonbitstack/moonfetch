@@ -27,8 +27,9 @@ async fn read(client : @moonfetch.Client) -> String raise {
 }
 ```
 
-`checked()` raises `@moonfetch.Refused::Status` for a 4xx or 5xx; `json()` parses the body,
-`text()` decodes it as UTF-8, `body` is the octets.
+`checked()` raises `@moonfetch.Refused::Status` for a 4xx or 5xx; `json()` parses the body in the
+strict reading of RFC 8259 and raises `@moonjson.Refused` on anything else, `text()` decodes it as
+UTF-8, `body` is the octets.
 
 ## A client with defaults
 

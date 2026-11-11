@@ -306,6 +306,12 @@ assert_eq(trace.version, "HTTP/3")</code></pre>
           overlap as they do on HTTP/2. An origin that says nothing on the datagram within three
           seconds is spoken to over TCP from then on, and the program does not see the attempt.
         </p>
+        <p class="prose">
+          A reply is read as it arrives, not a frame at a time. A DATA frame may hold a whole
+          body, so the octets are taken as they come and the room that reading frees goes back
+          to the server as credit while the body is still on its way — which is what lets a body
+          larger than the receive window through.
+        </p>
       </section>
 
       <section class="stop" id="ws">

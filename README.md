@@ -103,6 +103,11 @@ requests overlap the way they do on HTTP/2. Settings advertise a QPACK table of 
 keeps a reply to the static table; the connection is moonnet's, which runs moonquic's state
 machine on the datagram socket.
 
+A reply is read as it arrives rather than a frame at a time: a DATA frame may carry a whole body,
+however large, so the octets are taken as they come and the room that reading frees goes back to
+the server as flow-control credit while the body is still on its way. Eight mebibytes from a
+server that writes its answer in one frame is one of the cases this repository runs.
+
 ## Streaming
 
 `stream` sends the request, follows redirects, and returns once the response head is in. Each
@@ -240,6 +245,7 @@ What this client was checked against, and what it came out as.
 | This repository's cases, over HTTP/1.1, HTTP/2 and HTTP/3 | every push, three systems | pass |
 | The same cases on the js host, against a server written on Node's `http` | every push | pass |
 | HTTP/3 against nginx 1.29 (`--with-http_v3_module`, in a container) and against mooncat's QUIC listener, real traffic each | every push | pass |
+| HTTP/3 against aioquic 1.3.0, which writes a reply as one DATA frame however large, the 8 MiB body included | every push | pass |
 | 21 public HTTPS origins, 15 of them over HTTP/2 | once, by hand | 19 of 21; the two that fail offer TLS 1.2 only, which moontls does not speak |
 
 ## Beside the official client

@@ -125,6 +125,30 @@ async test "h3: a stream hands the body over as it arrives" {
 }
 
 ///|
+/// The largest body the live cases ask for: 8 MiB, more than the receive window of one stream
+/// and more than the whole connection's, so it can only arrive if the credit that reading takes
+/// away is given back to the server while the body is being read.
+async test "h3: an eight-mebibyte body arrives, its window opening as it is read" {
+  guard h3_server() is Some(base) else { return }
+  let client = @moonfetch.Client::new(
+    tls=trusting(),
+    http3=true,
+    timeout=Some(120000),
+  )
+  defer client.close()
+  let r = client.get("\{base}/big")
+  assert_eq(r.status, 200)
+  assert_eq(r.version, "HTTP/3")
+  let size = 8 * 1024 * 1024
+  assert_eq(r.body.length(), size)
+  // The octets are the server's pattern, so a body that stalls and a body that is whole cannot
+  // be told apart by its length alone.
+  for at in [0, 1, 255, 256, 4096, size - 1] {
+    assert_eq(r.body[at].to_int(), at % 256)
+  }
+}
+
+///|
 /// Read the datagrams a probe has collected: take what arrived, then stop at a quiet gap.
 async fn drain_datagrams(sock : @udp.Socket) -> Int32 {
   let seen = Ref(0)

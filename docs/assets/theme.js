@@ -6,7 +6,7 @@
   const KEY = "moonfetch-theme";
   let saved = null;
   try {
-    saved = localStorage.getItem(KEY);
+    saved = sessionStorage.getItem(KEY);
   } catch {
     // A browser that refuses storage still has its system theme.
   }

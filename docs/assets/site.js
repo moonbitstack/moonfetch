@@ -33,7 +33,7 @@
   // If the head script did not run — blocked, failed, cached away — the choice is still here.
   if (!root.dataset.theme) {
     try {
-      const stored = localStorage.getItem(KEY);
+      const stored = sessionStorage.getItem(KEY);
       if (stored === "light" || stored === "dark") {
         root.dataset.theme = stored;
         root.style.colorScheme = stored;
@@ -50,16 +50,10 @@
     // The document turns first, so the page still switches when storage is refused.
     show(next);
     try {
-      localStorage.setItem(KEY, next);
+      sessionStorage.setItem(KEY, next);
     } catch {
       // A page that cannot remember still switches.
     }
-  });
-
-  // Another page of the site — a second tab, or one opened from a link — changes the theme; this
-  // one follows without a reload.
-  addEventListener("storage", (event) => {
-    if (event.key === KEY) show(event.newValue);
   });
 
   // With no stored choice the label has to follow the system, which may change under the page.

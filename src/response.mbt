@@ -93,9 +93,10 @@ pub fn Response::text(self : Response) -> String {
 }
 
 ///|
-/// The body parsed as JSON.
-pub fn Response::json(self : Response) -> Json raise @json.ParseError {
-  @json.parse(self.text())
+/// The body parsed as JSON, in the strict reading of RFC 8259: no comment, no trailing comma,
+/// and nothing after the one value.
+pub fn Response::json(self : Response) -> Json raise @moonjson.Refused {
+  @moonjson.loads(self.text(), @moonjson.strict)
 }
 
 ///|

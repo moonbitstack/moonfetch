@@ -8,6 +8,7 @@ import {
   "moonbitlang/async/js_async",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
+  "moonbitstack/moonjson",
 }
 
 warnings = "-29"

@@ -7,7 +7,7 @@
 ///|
 /// The fields a page asked for: a JSON array of `[name, value]` pairs.
 fn fields_of(json : String) -> Array[(String, String)] {
-  let parsed = @json.parse(json) catch { _ => return [] }
+  let parsed = @moonjson.loads(json, @moonjson.strict) catch { _ => return [] }
   let out : Array[(String, String)] = []
   guard parsed is Array(rows) else { return out }
   for row in rows {

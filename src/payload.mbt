@@ -102,7 +102,7 @@ fn Body::payload(self : Body) -> (Payload, String?) {
     Text(text) => (Whole(@utf8.encode(text)), Some("text/plain; charset=utf-8"))
     Bytes(bytes) => (Whole(bytes), Some("application/octet-stream"))
     Json(value) =>
-      (Whole(@utf8.encode(value.stringify())), Some("application/json"))
+      (Whole(@utf8.encode(@moonjson.dumps(value))), Some("application/json"))
     Form(pairs) =>
       (
         Whole(@utf8.encode(@moonurl.Query::new(pairs~).encode())),

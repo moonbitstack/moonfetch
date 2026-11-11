@@ -5,6 +5,7 @@ import {
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
   "moonbitstack/moonhttp/method",
+  "moonbitstack/moonjson",
   "moonbitstack/moonnet/tcp",
   "moonbitstack/moontls/tls",
   "moonbitstack/moonurl",
@@ -146,7 +147,7 @@ pub fn Response::checked(Self) -> Self raise Refused
 pub fn Response::equal(Self, Self) -> Bool
 pub fn Response::header(Self, StringView) -> String?
 pub fn Response::is_success(Self) -> Bool
-pub fn Response::json(Self) -> @json.Json raise @json.ParseError
+pub fn Response::json(Self) -> @json.Json raise @moonjson.Refused
 pub fn Response::not_equal(Self, Self) -> Bool
 pub fn Response::text(Self) -> String
 pub fn Response::to_repr(Self) -> @debug.Repr

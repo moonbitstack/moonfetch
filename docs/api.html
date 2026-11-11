@@ -258,7 +258,8 @@ order they arrived in.</p>
 <div class="member" id="moonfetch-response-checked"><pre class="sig">fn Response::checked(Self) -&gt; Self raise Refused</pre><p>The response itself, or <code>Status</code> for a 4xx or 5xx, as reqwest's <code>error_for_status</code> does.</p></div>
 <div class="member" id="moonfetch-response-header"><pre class="sig">fn Response::header(Self, StringView) -&gt; String?</pre><p>The first value of the header <code>name</code>, matched without regard to case.</p></div>
 <div class="member" id="moonfetch-response-is-success"><pre class="sig">fn Response::is_success(Self) -&gt; Bool</pre><p>Whether the status is 2xx.</p></div>
-<div class="member" id="moonfetch-response-json"><pre class="sig">fn Response::json(Self) -&gt; @json.Json raise @json.ParseError</pre><p>The body parsed as JSON.</p></div>
+<div class="member" id="moonfetch-response-json"><pre class="sig">fn Response::json(Self) -&gt; @json.Json raise @moonjson.Refused</pre><p>The body parsed as JSON, in the strict reading of RFC 8259: no comment, no trailing comma,
+and nothing after the one value.</p></div>
 <div class="member" id="moonfetch-response-text"><pre class="sig">fn Response::text(Self) -&gt; String</pre><p>The body as UTF-8 text; a malformed sequence reads as U+FFFD.</p></div>
 <div class="member" id="moonfetch-response-values"><pre class="sig">fn Response::values(Self, StringView) -&gt; Array[String]</pre><p>Every value of the header <code>name</code>, in order: what <code>set-cookie</code> needs.</p></div>
 </div>

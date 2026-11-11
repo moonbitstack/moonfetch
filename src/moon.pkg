@@ -19,6 +19,7 @@ import {
   "moonbitstack/moonhttp/method",
   "moonbitstack/moonhttp/cookie",
   "moonbitstack/moonvar/quic" @varint,
+  "moonbitstack/moonjson",
   "moonbitstack/moonurl",
   "moonbitstack/moondate",
   "moonbitstack/moonbase/base64",

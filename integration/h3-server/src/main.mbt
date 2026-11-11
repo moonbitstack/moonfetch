@@ -2,8 +2,25 @@
 // SPDX-License-Identifier: Apache-2.0
 
 ///|
-/// The routes the live cases of moonfetch ask for: a greeting, an echo of what arrived, and a
-/// redirect. The certificate is the fixture root's, so the client trusts it without a switch.
+/// Eight mebibytes of a repeating pattern, which is more than one stream's receive window and
+/// more than the connection's, so a client can only have it if it opens both again as it reads.
+fn big() -> Bytes {
+  let pattern = Buffer(size_hint=256)
+  for i in 0..<256 {
+    pattern.write_byte(i.to_byte())
+  }
+  let one = pattern.to_bytes()
+  let out = Buffer(size_hint=8 * 1024 * 1024)
+  for _ in 0..<32768 {
+    out.write_bytes(one)
+  }
+  out.to_bytes()
+}
+
+///|
+/// The routes the live cases of moonfetch ask for: a greeting, an echo of what arrived, a
+/// redirect, and a body larger than the receive windows. The certificate is the fixture root's,
+/// so the client trusts it without a switch.
 async fn app(
   scope : @moonasgi.Scope,
   receive : @moonasgi.Receive,
@@ -22,6 +39,7 @@ async fn app(
   }
   match http.path {
     "/" => greet(200, @utf8.encode("hello over h3\n"))
+    "/big" => greet(200, big())
     "/away" => {
       send(
         @moonasgi.Event::HttpResponseStart(

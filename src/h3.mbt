@@ -454,7 +454,7 @@ async fn H3::send_body(self : H3, at : Int32, payload : Payload) -> Unit {
 
 ///|
 /// End the exchange's stream now that its body is sent.
-fn H3::finish(self : H3, at : Int32) -> Unit {
+fn H3::finish(self : H3, at : Int32) -> Unit raise {
   match self.streams.get(at) {
     Some(stream) if !stream.closed =>
       self.quic.write(stream.stream, b"", fin=true)

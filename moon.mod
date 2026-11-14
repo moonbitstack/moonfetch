@@ -1,6 +1,6 @@
 name = "moonbitstack/moonfetch"
 
-version = "0.1.8"
+version = "0.2.0"
 
 readme = "README.md"
 
@@ -72,18 +72,18 @@ description = "An HTTP and WebSocket client for MoonBit, on native, wasm and the
 source = "src"
 
 import {
-  "moonbitstack/moonnet@0.1.12",
-  "moonbitstack/moontls@0.9.16",
-  "moonbitstack/mooncred@0.6.13",
-  "moonbitstack/moonhttp@0.15.10",
-  "moonbitstack/moonvar@0.2.2",
-  "moonbitstack/moonjson@0.4.4",
-  "moonbitstack/moonurl@0.2.6",
-  "moonbitstack/moonzip@0.3.8",
-  "moonbitstack/moonbase@0.4.5",
-  "moonbitstack/moonmime@0.2.5",
+  "moonbitstack/moonnet@0.2.0",
+  "moonbitstack/moontls@0.9.17",
+  "moonbitstack/mooncred@0.7.0",
+  "moonbitstack/moonhttp@0.16.0",
+  "moonbitstack/moonvar@0.3.0",
+  "moonbitstack/moonjson@0.5.0",
+  "moonbitstack/moonurl@0.3.0",
+  "moonbitstack/moonzip@0.4.0",
+  "moonbitstack/moonbase@0.5.0",
+  "moonbitstack/moonmime@0.3.0",
   "moonbitstack/moondate@0.1.7",
-  "moonbitstack/mooncrypt@0.4.14",
-  "moonbitstack/moonseed@0.1.3",
+  "moonbitstack/mooncrypt@0.5.0",
+  "moonbitstack/moonseed@0.2.0",
   "moonbitlang/async@0.22.5",
 }

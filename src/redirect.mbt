@@ -9,7 +9,7 @@ priv enum Next {
     verb~ : @method.Method,
     url~ : @moonurl.Url,
     fields~ : Array[(String, String)],
-    body~ : Body
+    body~ : Body,
   )
 }
 

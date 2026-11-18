@@ -67,17 +67,19 @@ async fn app(
           trailers=false,
         ),
       )
-      send(@moonasgi.Event::HttpResponseBody(
-        body=@utf8.encode(line),
-        more_body=false,
-      ))
+      send(
+        @moonasgi.Event::HttpResponseBody(
+          body=@utf8.encode(line),
+          more_body=false,
+        ),
+      )
     }
   }
 }
 
 ///|
 /// Serve until killed on the port `MOONFETCH_H3_PORT` names, 12000 by default.
-async fn main raise {
+async fn main {
   let port = match @env.get_env_var("MOONFETCH_H3_PORT") {
     Some(text) => @string.parse_int(text) catch { _ => 12000 }
     None => 12000
